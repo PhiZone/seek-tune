@@ -26,7 +26,7 @@ type Song struct {
 	YouTubeID string
 }
 
-var DBtype = utils.GetEnv("DB_TYPE", "sqlite") // Can be "sqlite" or "mongo"
+var DBtype = utils.GetEnv("DB_TYPE", "mongo")
 
 func NewDBClient() (DBClient, error) {
 	switch DBtype {
@@ -44,9 +44,6 @@ func NewDBClient() (DBClient, error) {
 			dbUri = "mongodb://localhost:27017"
 		}
 		return NewMongoClient(dbUri)
-
-	case "sqlite":
-		return NewSQLiteClient("db.sqlite3")
 
 	default:
 		return nil, fmt.Errorf("unsupported database type: %s", DBtype)

@@ -26,3 +26,6 @@ go.work
 .vscode
 
 package-lock.json
+
+recordings/
+tmp/

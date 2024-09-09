@@ -114,7 +114,7 @@ func (db *MongoClient) RegisterSong(songTitle, songArtist, ytID string) (uint32,
 
 	// Create a compound unique index on ytID and key, if it doesn't already exist
 	indexModel := mongo.IndexModel{
-		Keys:    bson.D{{"ytID", 1}, {"key", 1}},
+		Keys:    bson.D{{Key: "ytID", Value: 1}, {Key: "key", Value: 1}},
 		Options: options.Index().SetUnique(true),
 	}
 	_, err := existingSongsCollection.Indexes().CreateOne(context.Background(), indexModel)
