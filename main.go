@@ -17,7 +17,7 @@ func main() {
 		logger := utils.GetLogger()
 		err := xerrors.New(err)
 		ctx := context.Background()
-		logger.ErrorContext(ctx, "Failed create tmp dir.", slog.Any("error", err))
+		logger.ErrorContext(ctx, "failed to create tmp dir", slog.Any("error", err))
 	}
 
 	err = utils.CreateFolder(SONGS_DIR)
@@ -30,7 +30,7 @@ func main() {
 	}
 
 	if len(os.Args) < 2 {
-		fmt.Println("Expected 'find', 'download', 'erase', 'save', or 'serve' subcommands")
+		fmt.Println("Expected 'find', 'erase', or 'serve' subcommands")
 		os.Exit(1)
 	}
 
@@ -42,13 +42,6 @@ func main() {
 		}
 		filePath := os.Args[2]
 		find(filePath)
-	case "download":
-		if len(os.Args) < 3 {
-			fmt.Println("Usage: main.go download <spotify_url>")
-			os.Exit(1)
-		}
-		url := os.Args[2]
-		download(url)
 	case "serve":
 		serveCmd := flag.NewFlagSet("serve", flag.ExitOnError)
 		protocol := serveCmd.String("proto", "http", "Protocol to use (http or https)")
@@ -57,19 +50,8 @@ func main() {
 		serve(*protocol, *port)
 	case "erase":
 		erase(SONGS_DIR)
-	case "save":
-		indexCmd := flag.NewFlagSet("save", flag.ExitOnError)
-		force := indexCmd.Bool("force", false, "save song with or without YouTube ID")
-		indexCmd.BoolVar(force, "f", false, "save song with or without YouTube ID (shorthand)")
-		indexCmd.Parse(os.Args[2:])
-		if indexCmd.NArg() < 1 {
-			fmt.Println("Usage: main.go save [-f|--force] <path_to_wav_file_or_dir>")
-			os.Exit(1)
-		}
-		filePath := indexCmd.Arg(0)
-		save(filePath, *force)
 	default:
-		fmt.Println("Expected 'find', 'download', 'erase', 'save', or 'serve' subcommands")
+		fmt.Println("Expected 'find', 'erase', or 'serve' subcommands")
 		os.Exit(1)
 	}
 }

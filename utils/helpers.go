@@ -106,13 +106,13 @@ func ProcessRecording(recData *models.RecordData, saveRecording bool) ([]float64
 		err := CreateFolder("recordings")
 		if err != nil {
 			err := xerrors.New(err)
-			logger.ErrorContext(ctx, "Failed create folder.", slog.Any("error", err))
+			logger.ErrorContext(ctx, "failed to create folder", slog.Any("error", err))
 		}
 
 		newFilePath := strings.Replace(reformatedWavFile, "tmp/", "recordings/", 1)
 		err = os.Rename(reformatedWavFile, newFilePath)
 		if err != nil {
-			logger.ErrorContext(ctx, "Failed to move file.", slog.Any("error", err))
+			logger.ErrorContext(ctx, "failed to move file", slog.Any("error", err))
 		}
 	}
 

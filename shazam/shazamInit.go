@@ -12,7 +12,7 @@ type Match1 struct {
 	SongID     uint32
 	SongTitle  string
 	SongArtist string
-	YouTubeID  string
+	PhiZoneID  string
 	Timestamp  uint32
 	Coherency  float64
 }
@@ -27,7 +27,7 @@ func Search(audioSamples []float64, audioDuration float64, sampleRate int) ([]Ma
 	fingerprints := Fingerprint(peaks, utils.GenerateUniqueID())
 
 	addresses := make([]uint32, 0, len(fingerprints))
-	for address, _ := range fingerprints {
+	for address := range fingerprints {
 		addresses = append(addresses, address)
 	}
 
@@ -54,7 +54,7 @@ func Search(audioSamples []float64, audioDuration float64, sampleRate int) ([]Ma
 		}
 
 		timestamp := targetZones[songID][0]
-		match := Match1{songID, song.Title, song.Artist, song.YouTubeID, timestamp, float64(coherency)}
+		match := Match1{songID, song.Title, song.Artist, song.SongID, timestamp, float64(coherency)}
 
 		matchList = append(matchList, match)
 	}
@@ -90,7 +90,7 @@ func targetZones(m map[uint32][]models.Couple) map[uint32][]uint32 {
 
 	targetZones := make(map[uint32][]uint32)
 	for songID, anchorTimes := range songs {
-		for anchorTime, _ := range anchorTimes {
+		for anchorTime := range anchorTimes {
 			targetZones[songID] = append(targetZones[songID], anchorTime)
 		}
 	}

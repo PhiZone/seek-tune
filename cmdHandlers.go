@@ -6,16 +6,13 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
-	"math"
 	"net/http"
 	"os"
 	"path/filepath"
 	"song-recognition/db"
 	"song-recognition/shazam"
-	"song-recognition/spotify"
 	"song-recognition/utils"
 	"song-recognition/wav"
-	"strconv"
 	"strings"
 
 	"github.com/fatih/color"
@@ -24,7 +21,6 @@ import (
 	"github.com/googollee/go-socket.io/engineio/transport"
 	"github.com/googollee/go-socket.io/engineio/transport/polling"
 	"github.com/googollee/go-socket.io/engineio/transport/websocket"
-	"github.com/mdobak/go-xerrors"
 )
 
 const (
@@ -77,38 +73,6 @@ func find(filePath string) {
 		topMatch.SongTitle, topMatch.SongArtist, topMatch.Score)
 }
 
-func download(spotifyURL string) {
-	err := utils.CreateFolder(SONGS_DIR)
-	if err != nil {
-		err := xerrors.New(err)
-		logger := utils.GetLogger()
-		ctx := context.Background()
-		logMsg := fmt.Sprintf("failed to create directory %v", SONGS_DIR)
-		logger.ErrorContext(ctx, logMsg, slog.Any("error", err))
-	}
-
-	if strings.Contains(spotifyURL, "album") {
-		_, err := spotify.DlAlbum(spotifyURL, SONGS_DIR)
-		if err != nil {
-			yellow.Println("Error: ", err)
-		}
-	}
-
-	if strings.Contains(spotifyURL, "playlist") {
-		_, err := spotify.DlPlaylist(spotifyURL, SONGS_DIR)
-		if err != nil {
-			yellow.Println("Error: ", err)
-		}
-	}
-
-	if strings.Contains(spotifyURL, "track") {
-		_, err := spotify.DlSingleTrack(spotifyURL, SONGS_DIR)
-		if err != nil {
-			yellow.Println("Error: ", err)
-		}
-	}
-}
-
 func serve(protocol, port string) {
 	protocol = strings.ToLower(protocol)
 	var allowOriginFunc = func(r *http.Request) bool {
@@ -134,8 +98,8 @@ func serve(protocol, port string) {
 	})
 
 	server.OnEvent("/", "totalSongs", handleTotalSongs)
-	server.OnEvent("/", "newDownload", handleSongDownload)
-	server.OnEvent("/", "newRecording", handleNewRecording)
+	server.OnEvent("/", "save", handleSave)
+	server.OnEvent("/", "find", handleFind)
 
 	server.OnError("/", func(s socketio.Conn, e error) {
 		log.Println("meet error:", e)
@@ -237,86 +201,4 @@ func erase(songsDir string) {
 	}
 
 	fmt.Println("Erase complete")
-}
-
-func save(path string, force bool) {
-	fileInfo, err := os.Stat(path)
-	if err != nil {
-		fmt.Printf("Error stating path %v: %v\n", path, err)
-		return
-	}
-
-	if fileInfo.IsDir() {
-		err := filepath.Walk(path, func(filePath string, info os.FileInfo, err error) error {
-			if err != nil {
-				fmt.Printf("Error walking the path %v: %v\n", filePath, err)
-				return err
-			}
-			// Process only files, skip directories
-			if !info.IsDir() {
-				err := saveSong(filePath, force)
-				if err != nil {
-					fmt.Printf("Error saving song (%v): %v\n", filePath, err)
-				}
-			}
-			return nil
-		})
-		if err != nil {
-			fmt.Printf("Error walking the directory %v: %v\n", path, err)
-		}
-	} else {
-		err := saveSong(path, force)
-		if err != nil {
-			fmt.Printf("Error saving song (%v): %v\n", path, err)
-		}
-	}
-}
-
-func saveSong(filePath string, force bool) error {
-	metadata, err := wav.GetMetadata(filePath)
-	if err != nil {
-		return err
-	}
-
-	durationFloat, err := strconv.ParseFloat(metadata.Format.Duration, 64)
-	if err != nil {
-		return fmt.Errorf("failed to parse duration to float: %v", err)
-	}
-
-	tags := metadata.Format.Tags
-	track := &spotify.Track{
-		Album:    tags["album"],
-		Artist:   tags["artist"],
-		Title:    tags["title"],
-		Duration: int(math.Round(durationFloat)),
-	}
-
-	ytID, err := spotify.GetYoutubeId(*track)
-	if err != nil && !force {
-		return fmt.Errorf("failed to get YouTube ID for song: %v", err)
-	}
-
-	if track.Title == "" {
-		return fmt.Errorf("no title found in metadata")
-	}
-	if track.Artist == "" {
-		return fmt.Errorf("no artist found in metadata")
-	}
-
-	err = spotify.ProcessAndSaveSong(filePath, track.Title, track.Artist, ytID)
-	if err != nil {
-		return fmt.Errorf("failed to process or save song: %v", err)
-	}
-
-	// Move song in wav format to songs directory
-	fileName := strings.TrimSuffix(filepath.Base(filePath), filepath.Ext(filePath))
-	wavFile := fileName + ".wav"
-	sourcePath := filepath.Join(filepath.Dir(filePath), wavFile)
-	newFilePath := filepath.Join(SONGS_DIR, wavFile)
-	err = os.Rename(sourcePath, newFilePath)
-	if err != nil {
-		return fmt.Errorf("failed to rename temporary file to output file: %v", err)
-	}
-
-	return nil
 }

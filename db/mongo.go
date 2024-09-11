@@ -43,7 +43,7 @@ func (db *MongoClient) StoreFingerprints(fingerprints map[uint32]models.Couple) 
 			"$push": bson.M{
 				"couples": bson.M{
 					"anchorTimeMs": couple.AnchorTimeMs,
-					"songID":       couple.SongID,
+					"id":           couple.SongID,
 				},
 			},
 		}
@@ -89,7 +89,7 @@ func (db *MongoClient) GetCouples(addresses []uint32) (map[uint32][]models.Coupl
 
 			couple := models.Couple{
 				AnchorTimeMs: uint32(itemMap["anchorTimeMs"].(int64)),
-				SongID:       uint32(itemMap["songID"].(int64)),
+				SongID:       uint32(itemMap["id"].(int64)),
 			}
 			docCouples = append(docCouples, couple)
 		}
@@ -109,12 +109,12 @@ func (db *MongoClient) TotalSongs() (int, error) {
 	return int(total), nil
 }
 
-func (db *MongoClient) RegisterSong(songTitle, songArtist, ytID string) (uint32, error) {
+func (db *MongoClient) RegisterSong(songTitle, songArtist, songID string) (uint32, error) {
 	existingSongsCollection := db.client.Database("song-recognition").Collection("songs")
 
-	// Create a compound unique index on ytID and key, if it doesn't already exist
+	// Create a compound unique index on songID and key, if it doesn't already exist
 	indexModel := mongo.IndexModel{
-		Keys:    bson.D{{Key: "ytID", Value: 1}, {Key: "key", Value: 1}},
+		Keys:    bson.D{{Key: "songID", Value: 1}, {Key: "key", Value: 1}},
 		Options: options.Index().SetUnique(true),
 	}
 	_, err := existingSongsCollection.Indexes().CreateOne(context.Background(), indexModel)
@@ -122,22 +122,22 @@ func (db *MongoClient) RegisterSong(songTitle, songArtist, ytID string) (uint32,
 		return 0, fmt.Errorf("failed to create unique index: %v", err)
 	}
 
-	// Attempt to insert the song with ytID and key
-	songID := utils.GenerateUniqueID()
+	// Attempt to insert the song with songID and key
+	id := utils.GenerateUniqueID()
 	key := utils.GenerateSongKey(songTitle, songArtist)
-	_, err = existingSongsCollection.InsertOne(context.Background(), bson.M{"_id": songID, "key": key, "ytID": ytID})
+	_, err = existingSongsCollection.InsertOne(context.Background(), bson.M{"_id": id, "key": key, "songID": songID})
 	if err != nil {
 		if mongo.IsDuplicateKeyError(err) {
-			return 0, fmt.Errorf("song with ytID or key already exists: %v", err)
+			return 0, fmt.Errorf("song with songID or key already exists: %v", err)
 		} else {
 			return 0, fmt.Errorf("failed to register song: %v", err)
 		}
 	}
 
-	return songID, nil
+	return id, nil
 }
 
-var mongofilterKeys = "_id | ytID | key"
+var mongofilterKeys = "_id | songID | key"
 
 func (db *MongoClient) GetSong(filterKey string, value interface{}) (s Song, songExists bool, e error) {
 	if !strings.Contains(mongofilterKeys, filterKey) {
@@ -157,31 +157,31 @@ func (db *MongoClient) GetSong(filterKey string, value interface{}) (s Song, son
 		return Song{}, false, fmt.Errorf("failed to retrieve song: %v", err)
 	}
 
-	ytID := song["ytID"].(string)
+	songID := song["songID"].(string)
 	title := strings.Split(song["key"].(string), "---")[0]
 	artist := strings.Split(song["key"].(string), "---")[1]
 
-	songInstance := Song{title, artist, ytID}
+	songInstance := Song{title, artist, songID}
 
 	return songInstance, true, nil
 }
 
-func (db *MongoClient) GetSongByID(songID uint32) (Song, bool, error) {
-	return db.GetSong("_id", songID)
+func (db *MongoClient) GetSongByID(id uint32) (Song, bool, error) {
+	return db.GetSong("_id", id)
 }
 
-func (db *MongoClient) GetSongByYTID(ytID string) (Song, bool, error) {
-	return db.GetSong("ytID", ytID)
+func (db *MongoClient) GetSongByYTID(songID string) (Song, bool, error) {
+	return db.GetSong("songID", songID)
 }
 
 func (db *MongoClient) GetSongByKey(key string) (Song, bool, error) {
 	return db.GetSong("key", key)
 }
 
-func (db *MongoClient) DeleteSongByID(songID uint32) error {
+func (db *MongoClient) DeleteSongByID(id uint32) error {
 	songsCollection := db.client.Database("song-recognition").Collection("songs")
 
-	filter := bson.M{"_id": songID}
+	filter := bson.M{"_id": id}
 
 	_, err := songsCollection.DeleteOne(context.Background(), filter)
 	if err != nil {

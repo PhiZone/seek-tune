@@ -6,24 +6,23 @@ import (
 	"fmt"
 	"log/slog"
 	"song-recognition/db"
-	"song-recognition/models"
 	"song-recognition/shazam"
 	"song-recognition/spotify"
 	"song-recognition/utils"
-	"strings"
+	"song-recognition/wav"
 
 	socketio "github.com/googollee/go-socket.io"
 	"github.com/mdobak/go-xerrors"
 )
 
-func downloadStatus(statusType, message string) string {
+func status(statusType, message string) string {
 	data := map[string]interface{}{"type": statusType, "message": message}
 	jsonData, err := json.Marshal(data)
 	if err != nil {
 		logger := utils.GetLogger()
 		ctx := context.Background()
 		err := xerrors.New(err)
-		logger.ErrorContext(ctx, "failed to marshal data.", slog.Any("error", err))
+		logger.ErrorContext(ctx, "failed to marshal data", slog.Any("error", err))
 		return ""
 	}
 	return string(jsonData)
@@ -51,164 +50,87 @@ func handleTotalSongs(socket socketio.Conn) {
 	socket.Emit("totalSongs", totalSongs)
 }
 
-func handleSongDownload(socket socketio.Conn, spotifyURL string) {
+func handleSave(socket socketio.Conn, songPath string, title string, artist string, pzID string) {
 	logger := utils.GetLogger()
 	ctx := context.Background()
 
-	// Handle album download
-	if strings.Contains(spotifyURL, "album") {
-		tracksInAlbum, err := spotify.AlbumInfo(spotifyURL)
-		if err != nil {
-			fmt.Println("log error: ", err)
-			if len(err.Error()) <= 25 {
-				socket.Emit("downloadStatus", downloadStatus("error", err.Error()))
-				logger.Info(err.Error())
-			} else {
-				err := xerrors.New(err)
-				logger.ErrorContext(ctx, "error getting album info", slog.Any("error", err))
-			}
+	// check if track already exist
+	db, err := db.NewDBClient()
+	if err != nil {
+		logger.ErrorContext(ctx, "error connecting to DB", slog.Any("error", err))
+	}
+	defer db.Close()
+
+	song, songExists, err := db.GetSongByKey(utils.GenerateSongKey(title, artist))
+	if err == nil {
+		if songExists {
+			statusMsg := fmt.Sprintf(
+				"'%s' by '%s' already exists in the database (https://www.phi.zone/songs/%s)",
+				song.Title, song.Artist, song.SongID)
+
+			socket.Emit("saveStatus", status("error", statusMsg))
 			return
 		}
-
-		statusMsg := fmt.Sprintf("%v songs found in album.", len(tracksInAlbum))
-		socket.Emit("downloadStatus", downloadStatus("info", statusMsg))
-
-		totalTracksDownloaded, err := spotify.DlAlbum(spotifyURL, SONGS_DIR)
-		if err != nil {
-			socket.Emit("downloadStatus", downloadStatus("error", "Couldn't to download album."))
-
-			err := xerrors.New(err)
-			logger.ErrorContext(ctx, "failed to download album.", slog.Any("error", err))
-			return
-		}
-
-		statusMsg = fmt.Sprintf("%d songs downloaded from album", totalTracksDownloaded)
-		socket.Emit("downloadStatus", downloadStatus("success", statusMsg))
+	} else {
+		err := xerrors.New(err)
+		logger.ErrorContext(ctx, "failed to get song by key", slog.Any("error", err))
 	}
 
-	// Handle playlist download
-	if strings.Contains(spotifyURL, "playlist") {
-		tracksInPL, err := spotify.PlaylistInfo(spotifyURL)
-		if err != nil {
-			if len(err.Error()) <= 25 {
-				socket.Emit("downloadStatus", downloadStatus("error", err.Error()))
-				logger.Info(err.Error())
-			} else {
-				err := xerrors.New(err)
-				logger.ErrorContext(ctx, "error getting album info", slog.Any("error", err))
-			}
-			return
-		}
-
-		statusMsg := fmt.Sprintf("%v songs found in playlist.", len(tracksInPL))
-		socket.Emit("downloadStatus", downloadStatus("info", statusMsg))
-
-		totalTracksDownloaded, err := spotify.DlPlaylist(spotifyURL, SONGS_DIR)
-		if err != nil {
-			socket.Emit("downloadStatus", downloadStatus("error", "Couldn't download playlist."))
-
-			err := xerrors.New(err)
-			logger.ErrorContext(ctx, "failed to download playlist.", slog.Any("error", err))
-			return
-		}
-
-		statusMsg = fmt.Sprintf("%d songs downloaded from playlist.", totalTracksDownloaded)
-		socket.Emit("downloadStatus", downloadStatus("success", statusMsg))
+	err = spotify.ProcessAndSaveSong(songPath, title, artist, pzID)
+	if err != nil {
+		socket.Emit("saveStatus", status("error", err.Error()))
+		logger.Info(err.Error())
+		return
 	}
 
-	// Handle track download
-	if strings.Contains(spotifyURL, "track") {
-		trackInfo, err := spotify.TrackInfo(spotifyURL)
-		if err != nil {
-			if len(err.Error()) <= 25 {
-				socket.Emit("downloadStatus", downloadStatus("error", err.Error()))
-				logger.Info(err.Error())
-			} else {
-				err := xerrors.New(err)
-				logger.ErrorContext(ctx, "error getting album info", slog.Any("error", err))
-			}
-			return
-		}
-
-		// check if track already exist
-		db, err := db.NewDBClient()
-		if err != nil {
-			fmt.Errorf("Log - error connecting to DB: %d", err)
-		}
-		defer db.Close()
-
-		song, songExists, err := db.GetSongByKey(utils.GenerateSongKey(trackInfo.Title, trackInfo.Artist))
-		if err == nil {
-			if songExists {
-				statusMsg := fmt.Sprintf(
-					"'%s' by '%s' already exists in the database (https://www.youtube.com/watch?v=%s)",
-					song.Title, song.Artist, song.YouTubeID)
-
-				socket.Emit("downloadStatus", downloadStatus("error", statusMsg))
-				return
-			}
-		} else {
-			err := xerrors.New(err)
-			logger.ErrorContext(ctx, "failed to get song by key.", slog.Any("error", err))
-		}
-
-		totalDownloads, err := spotify.DlSingleTrack(spotifyURL, SONGS_DIR)
-		if err != nil {
-			if len(err.Error()) <= 25 {
-				socket.Emit("downloadStatus", downloadStatus("error", err.Error()))
-				logger.Info(err.Error())
-			} else {
-				err := xerrors.New(err)
-				logger.ErrorContext(ctx, "error getting album info", slog.Any("error", err))
-			}
-			return
-		}
-
-		statusMsg := ""
-		if totalDownloads != 1 {
-			statusMsg = fmt.Sprintf("'%s' by '%s' failed to download", trackInfo.Title, trackInfo.Artist)
-			socket.Emit("downloadStatus", downloadStatus("error", statusMsg))
-		} else {
-			statusMsg = fmt.Sprintf("'%s' by '%s' was downloaded", trackInfo.Title, trackInfo.Artist)
-			socket.Emit("downloadStatus", downloadStatus("success", statusMsg))
-		}
-	}
+	statusMsg := ""
+	statusMsg = fmt.Sprintf("'%s' by '%s' was saved", title, artist)
+	socket.Emit("saveStatus", status("success", statusMsg))
 }
 
-func handleNewRecording(socket socketio.Conn, recordData string) {
+func handleFind(socket socketio.Conn, songFilePath string) {
 	logger := utils.GetLogger()
-	ctx := context.Background()
-
-	var recData models.RecordData
-	if err := json.Unmarshal([]byte(recordData), &recData); err != nil {
-		err := xerrors.New(err)
-		logger.ErrorContext(ctx, "Failed to unmarshal record data.", slog.Any("error", err))
+	wavFilePath, err := wav.ConvertToWAV(songFilePath, 1)
+	if err != nil {
+		socket.Emit("findStatus", status("error", err.Error()))
+		logger.Info(err.Error())
 		return
 	}
 
-	samples, err := utils.ProcessRecording(&recData, true)
+	wavInfo, err := wav.ReadWavInfo(wavFilePath)
 	if err != nil {
-		err := xerrors.New(err)
-		logger.ErrorContext(ctx, "Failed to process recording.", slog.Any("error", err))
+		socket.Emit("findStatus", status("error", err.Error()))
+		logger.Info(err.Error())
 		return
 	}
 
-	matches, _, err := shazam.FindMatches(samples, recData.Duration, recData.SampleRate)
+	samples, err := wav.WavBytesToSamples(wavInfo.Data)
 	if err != nil {
-		err := xerrors.New(err)
-		logger.ErrorContext(ctx, "failed to get matches.", slog.Any("error", err))
-	}
-
-	jsonData, err := json.Marshal(matches)
-	if len(matches) > 10 {
-		jsonData, _ = json.Marshal(matches[:10])
-	}
-
-	if err != nil {
-		err := xerrors.New(err)
-		logger.ErrorContext(ctx, "failed to marshal matches.", slog.Any("error", err))
+		socket.Emit("findStatus", status("error", err.Error()))
+		logger.Info(err.Error())
 		return
 	}
 
-	socket.Emit("matches", string(jsonData))
+	matches, searchDuration, err := shazam.FindMatches(samples, wavInfo.Duration, wavInfo.SampleRate)
+	if err != nil {
+		socket.Emit("findStatus", status("error", err.Error()))
+		logger.Info(err.Error())
+		return
+	}
+
+	var simplifiedMatches []map[string]interface{}
+	for _, match := range matches {
+		simplifiedMatches = append(simplifiedMatches, map[string]interface{}{
+			"id":        match.PhiZoneID,
+			"timestamp": match.Timestamp,
+			"score":     match.Score,
+		})
+	}
+
+	socket.Emit("findResult", map[string]interface{}{
+		"matches":  simplifiedMatches,
+		"timeTook": searchDuration.Seconds(),
+	})
+
+	logger.Info("Find matches emitted successfully")
 }

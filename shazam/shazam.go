@@ -13,7 +13,7 @@ type Match struct {
 	SongID     uint32
 	SongTitle  string
 	SongArtist string
-	YouTubeID  string
+	PhiZoneID  string
 	Timestamp  uint32
 	Score      float64
 }
@@ -75,7 +75,7 @@ func FindMatches(audioSamples []float64, audioDuration float64, sampleRate int) 
 			return timestamps[songID][i] < timestamps[songID][j]
 		})
 
-		match := Match{songID, song.Title, song.Artist, song.YouTubeID, timestamps[songID][0], points}
+		match := Match{songID, song.Title, song.Artist, song.SongID, timestamps[songID][0], points}
 		matchList = append(matchList, match)
 	}
 

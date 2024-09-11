@@ -24,7 +24,7 @@ func Fingerprint(peaks []Peak, songID uint32) map[uint32]models.Couple {
 			address := createAddress(anchor, target)
 			anchorTimeMs := uint32(anchor.Time * 1000)
 
-			fingerprints[address] = models.Couple{anchorTimeMs, songID}
+			fingerprints[address] = models.Couple{AnchorTimeMs: anchorTimeMs, SongID: songID}
 		}
 	}
 

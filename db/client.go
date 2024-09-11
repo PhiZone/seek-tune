@@ -21,9 +21,9 @@ type DBClient interface {
 }
 
 type Song struct {
-	Title     string
-	Artist    string
-	YouTubeID string
+	Title  string
+	Artist string
+	SongID string
 }
 
 var DBtype = utils.GetEnv("DB_TYPE", "mongo")
