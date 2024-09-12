@@ -50,6 +50,50 @@ func handleTotalSongs(socket socketio.Conn) {
 	socket.Emit("totalSongs", totalSongs)
 }
 
+func handleSongExists(socket socketio.Conn, phiZoneID string) {
+	logger := utils.GetLogger()
+	ctx := context.Background()
+
+	db, err := db.NewDBClient()
+	if err != nil {
+		err := xerrors.New(err)
+		logger.ErrorContext(ctx, "error connecting to DB", slog.Any("error", err))
+		return
+	}
+	defer db.Close()
+
+	exists, err := db.SongExistsByID(phiZoneID)
+	if err != nil {
+		err := xerrors.New(err)
+		logger.ErrorContext(ctx, "error checking song existence", slog.Any("error", err))
+		return
+	}
+
+	socket.Emit("songExists", exists)
+}
+
+func handleSongsUnsaved(socket socketio.Conn, requestedIDs []string) {
+	logger := utils.GetLogger()
+	ctx := context.Background()
+
+	db, err := db.NewDBClient()
+	if err != nil {
+		err := xerrors.New(err)
+		logger.ErrorContext(ctx, "error connecting to DB", slog.Any("error", err))
+		return
+	}
+	defer db.Close()
+
+	nonExistentIDs, err := db.FindNonExistentSongs(requestedIDs)
+	if err != nil {
+		err := xerrors.New(err)
+		logger.ErrorContext(ctx, "error checking for non-existent songs", slog.Any("error", err))
+		return
+	}
+
+	socket.Emit("songsUnsaved", nonExistentIDs)
+}
+
 func handleSave(socket socketio.Conn, songPath string, title string, artist string, pzID string) {
 	logger := utils.GetLogger()
 	ctx := context.Background()

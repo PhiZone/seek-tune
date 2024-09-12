@@ -109,6 +109,51 @@ func (db *MongoClient) TotalSongs() (int, error) {
 	return int(total), nil
 }
 
+func (db *MongoClient) SongExistsByID(phiZoneID string) (bool, error) {
+	existingCollection := db.client.Database("song-recognition").Collection("songs")
+	filter := bson.D{{Key: "PhiZoneID", Value: phiZoneID}}
+
+	err := existingCollection.FindOne(context.Background(), filter).Err()
+	if err == mongo.ErrNoDocuments {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func (db *MongoClient) FindNonExistentSongs(requestedIDs []string) ([]string, error) {
+	existingCollection := db.client.Database("song-recognition").Collection("songs")
+
+	filter := bson.M{"PhiZoneID": bson.M{"$in": requestedIDs}}
+	cursor, err := existingCollection.Find(context.Background(), filter)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(context.Background())
+
+	foundIDs := make(map[string]bool)
+	for cursor.Next(context.Background()) {
+		var result struct {
+			PhiZoneID string `bson:"PhiZoneID"`
+		}
+		if err := cursor.Decode(&result); err != nil {
+			return nil, err
+		}
+		foundIDs[result.PhiZoneID] = true
+	}
+
+	var nonExistentIDs []string
+	for _, id := range requestedIDs {
+		if !foundIDs[id] {
+			nonExistentIDs = append(nonExistentIDs, id)
+		}
+	}
+
+	return nonExistentIDs, nil
+}
+
 func (db *MongoClient) RegisterSong(songTitle, songArtist, songID string) (uint32, error) {
 	existingSongsCollection := db.client.Database("song-recognition").Collection("songs")
 

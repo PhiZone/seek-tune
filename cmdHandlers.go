@@ -98,6 +98,8 @@ func serve(protocol, port string) {
 	})
 
 	server.OnEvent("/", "totalSongs", handleTotalSongs)
+	server.OnEvent("/", "checkSongExists", handleSongExists)
+	server.OnEvent("/", "checkSongsUnsaved", handleSongsUnsaved)
 	server.OnEvent("/", "save", handleSave)
 	server.OnEvent("/", "find", handleFind)
 

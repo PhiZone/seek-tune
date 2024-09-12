@@ -11,6 +11,8 @@ type DBClient interface {
 	StoreFingerprints(fingerprints map[uint32]models.Couple) error
 	GetCouples(addresses []uint32) (map[uint32][]models.Couple, error)
 	TotalSongs() (int, error)
+	SongExistsByID(phiZoneID string) (bool, error)
+	FindNonExistentSongs(requestedIDs []string) ([]string, error)
 	RegisterSong(songTitle, songArtist, ytID string) (uint32, error)
 	GetSong(filterKey string, value interface{}) (Song, bool, error)
 	GetSongByID(songID uint32) (Song, bool, error)
