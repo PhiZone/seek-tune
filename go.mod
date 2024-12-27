@@ -5,7 +5,7 @@ go 1.21.6
 require (
 	github.com/buger/jsonparser v1.1.1
 	github.com/fatih/color v1.16.0
-	github.com/googollee/go-socket.io v1.7.0
+	github.com/zishang520/engine.io/v2 v2.2.2
 	github.com/kkdai/youtube/v2 v2.10.1
 	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/mdobak/go-xerrors v0.3.1

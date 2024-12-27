@@ -16,11 +16,8 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	socketio "github.com/googollee/go-socket.io"
-	"github.com/googollee/go-socket.io/engineio"
-	"github.com/googollee/go-socket.io/engineio/transport"
-	"github.com/googollee/go-socket.io/engineio/transport/polling"
-	"github.com/googollee/go-socket.io/engineio/transport/websocket"
+	"github.com/zishang520/engine.io/v2/types"
+	"github.com/zishang520/socket.io/v2/socket"
 )
 
 const (
@@ -75,27 +72,28 @@ func find(filePath string) {
 
 func serve(protocol, port string) {
 	protocol = strings.ToLower(protocol)
-	var allowOriginFunc = func(r *http.Request) bool {
-		return true
-	}
+	// var allowOriginFunc = func(r *http.Request) bool {
+	// 	return true
+	// }
 
-	server := socketio.NewServer(&engineio.Options{
-		Transports: []transport.Transport{
-			&polling.Transport{
-				CheckOrigin: allowOriginFunc,
-			},
-			&websocket.Transport{
-				CheckOrigin: allowOriginFunc,
-			},
-		},
-	})
+	// &engineio.Options{
+	// 	Transports: []transport.Transport{
+	// 		&polling.Transport{
+	// 			CheckOrigin: allowOriginFunc,
+	// 		},
+	// 		&websocket.Transport{
+	// 			CheckOrigin: allowOriginFunc,
+	// 		},
+	// 	},
+	// }
+	server := socket.NewServer(types.CreateServer(nil), nil)
 
-	server.OnConnect("/", func(socket socketio.Conn) error {
-		socket.SetContext("")
-		log.Println("CONNECTED: ", socket.ID())
+	// server.OnConnect("/", func(socket socketio.Conn) error {
+	// 	socket.SetContext("")
+	// 	log.Println("CONNECTED: ", socket.ID())
 
-		return nil
-	})
+	// 	return nil
+	// })
 
 	server.OnEvent("/", "totalSongs", handleTotalSongs)
 	server.OnEvent("/", "checkSongExists", handleSongExists)
@@ -103,13 +101,13 @@ func serve(protocol, port string) {
 	server.OnEvent("/", "save", handleSave)
 	server.OnEvent("/", "find", handleFind)
 
-	server.OnError("/", func(s socketio.Conn, e error) {
-		log.Println("meet error:", e)
-	})
+	// server.OnError("/", func(s socketio.Conn, e error) {
+	// 	log.Println("meet error:", e)
+	// })
 
-	server.OnDisconnect("/", func(s socketio.Conn, reason string) {
-		log.Println("closed", reason)
-	})
+	// server.OnDisconnect("/", func(s socketio.Conn, reason string) {
+	// 	log.Println("closed", reason)
+	// })
 
 	go func() {
 		if err := server.Serve(); err != nil {
@@ -123,7 +121,7 @@ func serve(protocol, port string) {
 	serveHTTP(server, serveHTTPS, port)
 }
 
-func serveHTTP(socketServer *socketio.Server, serveHTTPS bool, port string) {
+func serveHTTP(socketServer *socket.Server, serveHTTPS bool, port string) {
 	http.Handle("/socket.io/", socketServer)
 
 	if serveHTTPS {
