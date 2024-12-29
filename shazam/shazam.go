@@ -52,8 +52,8 @@ func FindMatches(audioSamples []float64, audioDuration float64, sampleRate int) 
 
 	for address, couples := range m {
 		for _, couple := range couples {
-			matches[couple.SongID] = append(matches[couple.SongID], [2]uint32{fingerprints[address].AnchorTimeMs, couple.AnchorTimeMs})
-			timestamps[couple.SongID] = append(timestamps[couple.SongID], couple.AnchorTimeMs)
+			matches[couple.PhiZoneID] = append(matches[couple.PhiZoneID], [2]uint32{fingerprints[address].AnchorTimeMs, couple.AnchorTimeMs})
+			timestamps[couple.PhiZoneID] = append(timestamps[couple.PhiZoneID], couple.AnchorTimeMs)
 		}
 	}
 

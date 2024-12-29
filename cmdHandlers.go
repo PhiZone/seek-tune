@@ -126,6 +126,13 @@ func serve(protocol, port string) {
 func serveHTTP(socketServer *socketio.Server, serveHTTPS bool, port string) {
 	http.Handle("/socket.io/", socketServer)
 
+	// POST 处理器，路径为create，调用handleHttpSave
+	http.HandleFunc("/create", handleHttpSave)
+	http.HandleFunc("/totalSongs", handleHttpTotalSongs)
+	http.HandleFunc("/checkSongExists", handleHttpSongExists)
+	http.HandleFunc("/checkSongsUnsaved", handleHttpSongsUnsaved)
+	http.HandleFunc("/find", handleHttpFind)
+
 	if serveHTTPS {
 		httpsAddr := ":" + port
 		httpsServer := &http.Server{

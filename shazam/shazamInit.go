@@ -71,10 +71,10 @@ func targetZones(m map[uint32][]models.Couple) map[uint32][]uint32 {
 
 	for _, couples := range m {
 		for _, couple := range couples {
-			if _, ok := songs[couple.SongID]; !ok {
-				songs[couple.SongID] = make(map[uint32]int)
+			if _, ok := songs[couple.PhiZoneID]; !ok {
+				songs[couple.PhiZoneID] = make(map[uint32]int)
 			}
-			songs[couple.SongID][couple.AnchorTimeMs]++
+			songs[couple.PhiZoneID][couple.AnchorTimeMs]++
 		}
 	}
 	fmt.Println("couples: ", songs)
