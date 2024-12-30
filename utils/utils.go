@@ -11,11 +11,11 @@ import (
 	"time"
 )
 
-func GenerateUniqueID() uint32 {
+func GenerateUniqueID() string {
 	rand.Seed(time.Now().UnixNano())
 	randomNumber := rand.Uint32()
 
-	return randomNumber
+	return fmt.Sprintf("%d", randomNumber)
 }
 
 func GenerateSongKey(songTitle, songArtist string) string {

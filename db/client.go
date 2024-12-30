@@ -13,12 +13,12 @@ type DBClient interface {
 	TotalSongs() (int, error)
 	SongExistsByID(phiZoneID string) (bool, error)
 	FindNonExistentSongs(requestedIDs []string) ([]string, error)
-	RegisterSong(songTitle, songArtist, ytID string) (uint32, error)
+	RegisterSong(songTitle, songArtist, ytID string) (string, error)
 	GetSong(filterKey string, value interface{}) (Song, bool, error)
-	GetSongByID(songID uint32) (Song, bool, error)
+	GetSongByID(PhiZoneID string) (Song, bool, error)
 	GetSongByYTID(ytID string) (Song, bool, error)
 	GetSongByKey(key string) (Song, bool, error)
-	DeleteSongByID(songID uint32) error
+	DeleteSongByID(songID string) error
 	DeleteCollection(collectionName string) error
 }
 

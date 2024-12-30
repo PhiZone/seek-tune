@@ -15,6 +15,7 @@ import (
 	"song-recognition/wav"
 )
 
+// 歌曲保存
 func handleHttpSave(w http.ResponseWriter, r *http.Request) {
 	logger := utils.GetLogger()
 	ctx := context.Background()
@@ -48,7 +49,7 @@ func handleHttpSave(w http.ResponseWriter, r *http.Request) {
 	}
 	// 如果是URL，使用末尾的文件名作为音乐文件名，缓存到./urlSongTemp目录下
 	if songURL != "" {
-		//使用GET请求下载文件，不要使用unit里的utils.DownloadFile函数
+		//使用GET请求下载文件
 		filePath, err := utils.DownloadFile(songURL, "./urlSongTemp")
 		if err != nil {
 			// 如果下载失败，返回错误信息
@@ -70,7 +71,7 @@ func handleHttpSave(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		if songExists {
 			statusMsg := fmt.Sprintf(
-				"'%s' by '%s' already exists in the database (https://www.phi.zone/songs/%s)", // 该字符串中的 %s 会被 song.Title, song.Artist, song.SongID 替换
+				"'%s' by '%s' already exists in the database (https://www.phi.zone/songs/%s)",
 				song.Title, song.Artist, song.SongID) // Artist的Title已经存在于数据库中（https://www.phi.zone/songs/ID）
 			http.Error(w, statusMsg, http.StatusConflict) // 状态码: 409
 			return
@@ -104,9 +105,9 @@ func handleHttpSave(w http.ResponseWriter, r *http.Request) {
 			logger.ErrorContext(ctx, "Failed to delete file", slog.Any("error", err))
 		}
 	}
-
 }
 
+// 歌曲总数
 func handleHttpTotalSongs(w http.ResponseWriter, r *http.Request) {
 	logger := utils.GetLogger()
 	ctx := context.Background()
@@ -143,6 +144,7 @@ func handleHttpTotalSongs(w http.ResponseWriter, r *http.Request) {
 	logger.Info("HTTP total songs response written successfully", slog.Int("bytesWritten", wr))
 }
 
+// 意义不明
 func handleHttpSongsUnsaved(w http.ResponseWriter, r *http.Request) {
 	logger := utils.GetLogger()
 	ctx := context.Background()
@@ -178,6 +180,7 @@ func handleHttpSongsUnsaved(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// 歌曲查找
 func handleHttpFind(w http.ResponseWriter, r *http.Request) {
 	logger := utils.GetLogger()
 	ctx := context.Background()
@@ -228,26 +231,25 @@ func handleHttpFind(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	matches, searchDuration, err := shazam.FindMatches(samples, wavInfo.Duration, wavInfo.SampleRate)
+	matches, _, err := shazam.FindMatches(samples, wavInfo.Duration, wavInfo.SampleRate)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		logger.Info(err.Error())
 		return
 	}
 
-	var simplifiedMatches []map[string]interface{}
+	var simplifiedMatches []string
 	for _, match := range matches {
-		simplifiedMatches = append(simplifiedMatches, map[string]interface{}{
-			"id":        match.PhiZoneID,
-			"timestamp": match.Timestamp,
-			"score":     match.Score,
-		})
+		simplifiedMatches = append(simplifiedMatches, match.PhiZoneID)
+		// 在控制台输出匹配的歌曲信息
+		fmt.Printf("\t- %s by %s, score: %.2f\n", match.SongTitle, match.SongArtist, match.Score)
 	}
-
-	response := map[string]interface{}{
-		"matches":  simplifiedMatches,
-		"timeTook": searchDuration.Seconds(),
+	// 如果是空的，返回状态码404
+	if len(simplifiedMatches) == 0 {
+		http.Error(w, "No match found", http.StatusNotFound)
+		return
 	}
+	response := simplifiedMatches
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
@@ -262,6 +264,7 @@ func handleHttpFind(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// 通过PhiZoneID查找歌曲是否存在
 func handleHttpSongExists(w http.ResponseWriter, r *http.Request) {
 	logger := utils.GetLogger()
 	ctx := context.Background()
@@ -304,4 +307,95 @@ func handleHttpSongExists(w http.ResponseWriter, r *http.Request) {
 	// 空响应体
 	wr, err := w.Write([]byte(""))
 	logger.Info("HTTP song exists response written successfully", slog.Int("bytesWritten", wr))
+}
+
+// 更新PhiZoneID对应的歌曲信息
+func handleHttpUpdate(w http.ResponseWriter, r *http.Request) {
+	logger := utils.GetLogger()
+	ctx := context.Background()
+	// 检查请求方法是否为PATCH
+	if r.Method != http.MethodPatch {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed) // 状态码: 405
+		return
+	}
+
+	// Parse form data
+	err := r.ParseForm()
+	if err != nil {
+		http.Error(w, "Failed to parse form data", http.StatusBadRequest) // 状态码: 400
+		return
+	}
+
+	songPath := r.FormValue("songPath") // 本地文件路径
+	songURL := r.FormValue("songUrl")   // 远程文件URL
+	title := r.FormValue("title")       // 歌曲标题
+	artist := r.FormValue("artist")     // 曲师
+	pzID := r.FormValue("pzID")         // PhiZoneID
+	// 检查所有字段是否都有值，songPath和songURL至少有一个
+	if (songPath == "" && songURL == "") || (songPath != "" && songURL != "") {
+		http.Error(w, "Either songPath or songUrl must be provided, but not both", http.StatusBadRequest) // 状态码: 400
+		return
+	}
+	// 其他字段不能为空
+	if title == "" || artist == "" || pzID == "" {
+		http.Error(w, "Missing required field: title, artist, or pzID", http.StatusBadRequest) // 状态码: 400
+		return
+	}
+
+	database, err := db.NewDBClient()
+	if err != nil {
+		logger.ErrorContext(ctx, "error connecting to DB", slog.Any("error", err))
+		http.Error(w, "Error connecting to DB", http.StatusInternalServerError) // 状态码: 500
+		return
+	}
+	defer database.Close()
+
+	_, songExists, err := database.GetSongByKey(utils.GenerateSongKey(title, artist))
+	if err == nil {
+		if !songExists {
+			statusMsg := fmt.Sprintf("No data found for pzID: %s", pzID)
+			http.Error(w, statusMsg, http.StatusNotFound) // 状态码: 404
+			return
+		}
+	} else {
+		err := xerrors.New(err)
+		logger.ErrorContext(ctx, "failed to get song by key", slog.Any("error", err)) // 通过key获取歌曲失败
+		http.Error(w, "Failed to get song by key", http.StatusInternalServerError)    // 状态码: 500
+		return
+	}
+
+	// 如果是URL，使用末尾的文件名作为音乐文件名，缓存到./urlSongTemp目录下
+	if songURL != "" {
+		//使用GET请求下载文件
+		filePath, err := utils.DownloadFile(songURL, "./urlSongTemp")
+		if err != nil {
+			// 如果下载失败，返回错误信息
+			http.Error(w, err.Error(), http.StatusInternalServerError) // 状态码: 500
+			return
+		}
+		songPath = filePath
+	}
+
+	err = spotify.ProcessAndSaveSong(songPath, title, artist, pzID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError) // 状态码: 500
+		logger.Info(err.Error())
+		return
+	}
+
+	statusMsg := fmt.Sprintf("'%s' was update", pzID) // 歌曲已保存
+	w.WriteHeader(http.StatusOK)                      // 状态码: 200
+	wr, err := w.Write([]byte(statusMsg))
+	if err != nil {
+		logger.ErrorContext(ctx, "Failed to write response", slog.Any("error", err))
+		http.Error(w, "Failed to write response", http.StatusInternalServerError) // 状态码: 500
+		return
+	}
+	logger.Info("HTTP save response written successfully", slog.Int("bytesWritten", wr))
+	// 如果songURL不为空，删除songFilePath指向的文件
+	if songURL != "" {
+		if err := os.Remove(songPath); err != nil {
+			logger.ErrorContext(ctx, "Failed to delete file", slog.Any("error", err))
+		}
+	}
 }

@@ -10,7 +10,7 @@ import (
 )
 
 type Match struct {
-	SongID     uint32
+	//SongID     uint32
 	SongTitle  string
 	SongArtist string
 	PhiZoneID  string
@@ -47,8 +47,8 @@ func FindMatches(audioSamples []float64, audioDuration float64, sampleRate int) 
 		return nil, time.Since(startTime), err
 	}
 
-	matches := map[uint32][][2]uint32{} // songID -> [(sampleTime, dbTime)]
-	timestamps := map[uint32][]uint32{}
+	matches := map[string][][2]uint32{} // songID -> [(sampleTime, dbTime)]
+	timestamps := map[string][]uint32{}
 
 	for address, couples := range m {
 		for _, couple := range couples {
@@ -75,7 +75,8 @@ func FindMatches(audioSamples []float64, audioDuration float64, sampleRate int) 
 			return timestamps[songID][i] < timestamps[songID][j]
 		})
 
-		match := Match{songID, song.Title, song.Artist, song.SongID, timestamps[songID][0], points}
+		//match := Match{songID, song.Title, song.Artist, song.SongID, timestamps[songID][0], points}
+		match := Match{song.Title, song.Artist, song.SongID, timestamps[songID][0], points}
 		matchList = append(matchList, match)
 	}
 
@@ -87,8 +88,8 @@ func FindMatches(audioSamples []float64, audioDuration float64, sampleRate int) 
 }
 
 // AnalyzeRelativeTiming checks for consistent relative timing and returns a score
-func analyzeRelativeTiming(matches map[uint32][][2]uint32) map[uint32]float64 {
-	scores := make(map[uint32]float64)
+func analyzeRelativeTiming(matches map[string][][2]uint32) map[string]float64 {
+	scores := make(map[string]float64)
 	for songID, times := range matches {
 		count := 0
 		for i := 0; i < len(times); i++ {

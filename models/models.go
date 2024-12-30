@@ -2,7 +2,7 @@ package models
 
 type Couple struct {
 	AnchorTimeMs uint32
-	PhiZoneID    uint32
+	PhiZoneID    string
 }
 
 type RecordData struct {
