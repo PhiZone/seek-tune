@@ -18,6 +18,114 @@ type MongoClient struct {
 	client *mongo.Client
 }
 
+func (db *MongoClient) TotalCopyrightSongs() (int, error) {
+	collection := db.client.Database("song-recognition").Collection("copyright_songs")
+	total, err := collection.CountDocuments(context.Background(), bson.D{})
+	if err != nil {
+		return 0, err
+	}
+	return int(total), nil
+}
+
+func (db *MongoClient) CopyrightSongExistsByID(phiZoneID string) (bool, error) {
+	collection := db.client.Database("song-recognition").Collection("copyright_songs")
+	filter := bson.D{{Key: "PhiZoneID", Value: phiZoneID}}
+
+	err := collection.FindOne(context.Background(), filter).Err()
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
+func (db *MongoClient) GetCopyrightSong(filterKey string, value interface{}) (Song, bool, error) {
+	if !strings.Contains(mongoFilterKeys, filterKey) {
+		return Song{}, false, errors.New("invalid filter key")
+	}
+
+	collection := db.client.Database("song-recognition").Collection("copyright_songs")
+	var song bson.M
+
+	filter := bson.M{filterKey: value}
+
+	err := collection.FindOne(context.Background(), filter).Decode(&song)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return Song{}, false, nil
+		}
+		return Song{}, false, fmt.Errorf("failed to retrieve song: %v", err)
+	}
+
+	PhiZoneID := song["PhiZoneID"].(string)
+	title := strings.Split(song["key"].(string), "---")[0]
+	artist := strings.Split(song["key"].(string), "---")[1]
+
+	songInstance := Song{title, artist, PhiZoneID}
+
+	return songInstance, true, nil
+}
+
+func (db *MongoClient) GetCopyrightSongByID(PhiZoneID string) (Song, bool, error) {
+	return db.GetCopyrightSong("PhiZoneID", PhiZoneID)
+}
+
+func (db *MongoClient) GetCopyrightSongByKey(key string) (Song, bool, error) {
+	return db.GetCopyrightSong("key", key)
+}
+
+func (db *MongoClient) DeleteCopyrightSongByID(songID string) error {
+	collection := db.client.Database("song-recognition").Collection("copyright_songs")
+
+	filter := bson.M{"_id": songID}
+
+	_, err := collection.DeleteOne(context.Background(), filter)
+	if err != nil {
+		return fmt.Errorf("failed to delete song: %v", err)
+	}
+
+	return nil
+}
+
+func (db *MongoClient) DeleteCopyrightCollection(collectionName string) error {
+	collection := db.client.Database("song-recognition").Collection(collectionName)
+	err := collection.Drop(context.Background())
+	if err != nil {
+		return fmt.Errorf("error deleting collection: %v", err)
+	}
+	return nil
+}
+
+func (db *MongoClient) RegisterCopyrightSong(songTitle, songArtist, songID string) (string, error) {
+	collection := db.client.Database("song-recognition").Collection("copyright_songs")
+
+	// Create a compound unique index on songID and key, if it doesn't already exist
+	indexModel := mongo.IndexModel{
+		Keys:    bson.D{{Key: "songID", Value: 1}, {Key: "key", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	}
+	_, err := collection.Indexes().CreateOne(context.Background(), indexModel)
+	if err != nil {
+		return "", fmt.Errorf("failed to create unique index: %v", err)
+	}
+
+	// Attempt to insert the song with songID and key
+	id := utils.GenerateUniqueID()
+	key := utils.GenerateSongKey(songTitle, songArtist)
+	_, err = collection.InsertOne(context.Background(), bson.M{"_id": id, "key": key, "songID": songID})
+	if err != nil {
+		if mongo.IsDuplicateKeyError(err) {
+			return "", fmt.Errorf("song with songID or key already exists: %v", err)
+		} else {
+			return "", fmt.Errorf("failed to register song: %v", err)
+		}
+	}
+
+	return id, nil
+}
+
 func NewMongoClient(uri string) (*MongoClient, error) {
 	clientOptions := options.Client().ApplyURI(uri)
 	client, err := mongo.Connect(context.Background(), clientOptions)
@@ -182,10 +290,10 @@ func (db *MongoClient) RegisterSong(songTitle, songArtist, PhiZoneID string) (st
 	return id, nil
 }
 
-var mongofilterKeys = "_id | PhiZoneID | key"
+var mongoFilterKeys = "_id | PhiZoneID | key"
 
 func (db *MongoClient) GetSong(filterKey string, value interface{}) (s Song, songExists bool, e error) {
-	if !strings.Contains(mongofilterKeys, filterKey) {
+	if !strings.Contains(mongoFilterKeys, filterKey) {
 		return Song{}, false, errors.New("invalid filter key")
 	}
 
@@ -196,7 +304,7 @@ func (db *MongoClient) GetSong(filterKey string, value interface{}) (s Song, son
 
 	err := songsCollection.FindOne(context.Background(), filter).Decode(&song)
 	if err != nil {
-		if err == mongo.ErrNoDocuments {
+		if errors.Is(err, mongo.ErrNoDocuments) {
 			return Song{}, false, nil
 		}
 		return Song{}, false, fmt.Errorf("failed to retrieve song: %v", err)
