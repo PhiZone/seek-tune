@@ -124,7 +124,17 @@ func serve(protocol, port string) {
 }
 
 func serveHTTP(socketServer *socketio.Server, serveHTTPS bool, port string) {
-	http.Handle("/socket.io/", socketServer)
+	//http.Handle("/socket.io/", socketServer)
+
+	http.HandleFunc("/create", handleHttpSave)
+	http.HandleFunc("/totalSongs", handleHttpTotalSongs)
+	http.HandleFunc("/checkSongExists", handleHttpSongExists)
+	http.HandleFunc("/checkSongsUnsaved", handleHttpSongsUnsaved)
+	http.HandleFunc("/find", handleHttpFind)
+
+	http.HandleFunc("/copyrightCreate", handleHttpCopyrightSave)
+	http.HandleFunc("/totalCopyrightSongs", handleHttpCopyrightTotalSongs)
+	http.HandleFunc("/copyrightFind", handleHttpCopyrightFind)
 
 	if serveHTTPS {
 		httpsAddr := ":" + port

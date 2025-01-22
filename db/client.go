@@ -13,13 +13,22 @@ type DBClient interface {
 	TotalSongs() (int, error)
 	SongExistsByID(phiZoneID string) (bool, error)
 	FindNonExistentSongs(requestedIDs []string) ([]string, error)
-	RegisterSong(songTitle, songArtist, ytID string) (uint32, error)
+	RegisterSong(songTitle, songArtist, ytID string) (string, error)
 	GetSong(filterKey string, value interface{}) (Song, bool, error)
-	GetSongByID(songID uint32) (Song, bool, error)
+	GetSongByID(PhiZoneID string) (Song, bool, error)
 	GetSongByYTID(ytID string) (Song, bool, error)
 	GetSongByKey(key string) (Song, bool, error)
-	DeleteSongByID(songID uint32) error
+	DeleteSongByID(songID string) error
 	DeleteCollection(collectionName string) error
+
+	RegisterCopyrightSong(songTitle, songArtist, songID string) (string, error)
+	TotalCopyrightSongs() (int, error)
+	CopyrightSongExistsByID(phiZoneID string) (bool, error)
+	GetCopyrightSong(filterKey string, value interface{}) (Song, bool, error)
+	GetCopyrightSongByID(PhiZoneID string) (Song, bool, error)
+	GetCopyrightSongByKey(key string) (Song, bool, error)
+	DeleteCopyrightSongByID(songID string) error
+	DeleteCopyrightCollection(collectionName string) error
 }
 
 type Song struct {

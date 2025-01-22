@@ -14,7 +14,7 @@ const (
 // The fingerprints are encoded using a 32-bit integer format and stored in an array.
 // Each fingerprint consists of an address and a couple.
 // The address is a hash. The couple contains the anchor time and the song ID.
-func Fingerprint(peaks []Peak, songID uint32) map[uint32]models.Couple {
+func Fingerprint(peaks []Peak, PhiZoneID string) map[uint32]models.Couple {
 	fingerprints := map[uint32]models.Couple{}
 
 	for i, anchor := range peaks {
@@ -24,7 +24,7 @@ func Fingerprint(peaks []Peak, songID uint32) map[uint32]models.Couple {
 			address := createAddress(anchor, target)
 			anchorTimeMs := uint32(anchor.Time * 1000)
 
-			fingerprints[address] = models.Couple{AnchorTimeMs: anchorTimeMs, SongID: songID}
+			fingerprints[address] = models.Couple{AnchorTimeMs: anchorTimeMs, PhiZoneID: PhiZoneID}
 		}
 	}
 

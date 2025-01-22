@@ -9,7 +9,7 @@ import (
 )
 
 type Match1 struct {
-	SongID     uint32
+	SongID     string
 	SongTitle  string
 	SongArtist string
 	PhiZoneID  string
@@ -66,15 +66,15 @@ func Search(audioSamples []float64, audioDuration float64, sampleRate int) ([]Ma
 	return matchList, nil
 }
 
-func targetZones(m map[uint32][]models.Couple) map[uint32][]uint32 {
-	songs := make(map[uint32]map[uint32]int)
+func targetZones(m map[uint32][]models.Couple) map[string][]uint32 {
+	songs := make(map[string]map[uint32]int)
 
 	for _, couples := range m {
 		for _, couple := range couples {
-			if _, ok := songs[couple.SongID]; !ok {
-				songs[couple.SongID] = make(map[uint32]int)
+			if _, ok := songs[couple.PhiZoneID]; !ok {
+				songs[couple.PhiZoneID] = make(map[uint32]int)
 			}
-			songs[couple.SongID][couple.AnchorTimeMs]++
+			songs[couple.PhiZoneID][couple.AnchorTimeMs]++
 		}
 	}
 	fmt.Println("couples: ", songs)
@@ -88,7 +88,7 @@ func targetZones(m map[uint32][]models.Couple) map[uint32][]uint32 {
 	}
 	fmt.Println("anchorTimes: ", songs)
 
-	targetZones := make(map[uint32][]uint32)
+	targetZones := make(map[string][]uint32)
 	for songID, anchorTimes := range songs {
 		for anchorTime := range anchorTimes {
 			targetZones[songID] = append(targetZones[songID], anchorTime)
@@ -98,9 +98,9 @@ func targetZones(m map[uint32][]models.Couple) map[uint32][]uint32 {
 	return targetZones
 }
 
-func timeCoherency(record map[uint32]models.Couple, songs map[uint32][]uint32) map[uint32]int {
+func timeCoherency(record map[uint32]models.Couple, songs map[string][]uint32) map[string]int {
 	// var threshold float64
-	matches := make(map[uint32]int)
+	matches := make(map[string]int)
 
 	for songID, songAnchorTimes := range songs {
 		deltas := make(map[float64]int)
