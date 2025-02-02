@@ -48,11 +48,14 @@ func NewDBClient() (DBClient, error) {
 			dbName     = utils.GetEnv("DB_NAME")
 			dbHost     = utils.GetEnv("DB_HOST")
 			dbPort     = utils.GetEnv("DB_PORT")
-
-			dbUri = "mongodb://" + dbUsername + ":" + dbPassword + "@" + dbHost + ":" + dbPort + "/" + dbName
+			dbUri      = utils.GetEnv("DB_URI")
 		)
-		if dbUsername == "" || dbPassword == "" {
-			dbUri = "mongodb://localhost:27017"
+		if dbUri == "" {
+			if dbUsername == "" || dbPassword == "" {
+				dbUri = "mongodb://localhost:27017"
+			} else {
+				dbUri = "mongodb://" + dbUsername + ":" + dbPassword + "@" + dbHost + ":" + dbPort + "/" + dbName
+			}
 		}
 		return NewMongoClient(dbUri)
 

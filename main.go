@@ -8,6 +8,7 @@ import (
 	"os"
 	"song-recognition/utils"
 
+	"github.com/joho/godotenv"
 	"github.com/mdobak/go-xerrors"
 )
 
@@ -18,6 +19,14 @@ func main() {
 		err := xerrors.New(err)
 		ctx := context.Background()
 		logger.ErrorContext(ctx, "failed to create tmp dir", slog.Any("error", err))
+	}
+
+	err = godotenv.Load()
+	if err != nil {
+		logger := utils.GetLogger()
+		err := xerrors.New(err)
+		ctx := context.Background()
+		logger.ErrorContext(ctx, "failed to load .env file", slog.Any("error", err))
 	}
 
 	err = utils.CreateFolder(SONGS_DIR)
