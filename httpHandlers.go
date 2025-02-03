@@ -238,11 +238,12 @@ func handleHttpFind(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var simplifiedMatches []string
+	var simplifiedMatches []map[string]interface{}
 	for _, match := range matches {
-		simplifiedMatches = append(simplifiedMatches, match.PhiZoneID)
-		// 在控制台输出匹配的歌曲信息
-		fmt.Printf("\t- %s by %s, score: %.2f\n", match.SongTitle, match.SongArtist, match.Score)
+		simplifiedMatches = append(simplifiedMatches, map[string]interface{}{
+			"id":    match.PhiZoneID,
+			"score": match.Score,
+		})
 	}
 	// 如果是空的，返回状态码404
 	if len(simplifiedMatches) == 0 {
@@ -585,11 +586,12 @@ func handleHttpCopyrightFind(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var simplifiedMatches []string
+	var simplifiedMatches []map[string]interface{}
 	for _, match := range matches {
-		simplifiedMatches = append(simplifiedMatches, match.PhiZoneID)
-		// 在控制台输出匹配的歌曲信息
-		fmt.Printf("\t- %s by %s, score: %.2f\n ", match.SongTitle, match.SongArtist, match.Score)
+		simplifiedMatches = append(simplifiedMatches, map[string]interface{}{
+			"id":    match.PhiZoneID,
+			"score": match.Score,
+		})
 	}
 	// 如果是空的，返回状态码404
 	if len(simplifiedMatches) == 0 {
