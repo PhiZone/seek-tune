@@ -612,3 +612,50 @@ func handleHttpCopyrightFind(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 }
+
+func handleHttpCopyrightExists(w http.ResponseWriter, r *http.Request) {
+	logger := utils.GetLogger()
+	ctx := context.Background()
+
+	// 检查请求方法是否为GET
+	if r.Method != http.MethodGet {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// 从请求参数中获取PhiZoneID
+	phiZoneID := r.URL.Query().Get("pzID")
+	if phiZoneID == "" {
+		http.Error(w, "Missing required field: pzID", http.StatusBadRequest)
+		return
+	}
+
+	// 连接数据库
+	db, err := db.NewDBClient()
+	if err != nil {
+		err := xerrors.New(err)
+		logger.ErrorContext(ctx, "error connecting to DB", slog.Any("error", err))
+		http.Error(w, "Error connecting to DB", http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+
+	// 检查PhiZoneID对应的歌曲是否存在
+	exists, err := db.CopyrightSongExistsByID(phiZoneID)
+	if err != nil {
+		err := xerrors.New(err)
+		logger.ErrorContext(ctx, "error checking song existence", slog.Any("error", err))
+		http.Error(w, "Error checking song existence", http.StatusInternalServerError)
+		return
+	}
+	// 如果exits为true，返回状态码200，否则返回状态码404
+	if exists {
+		w.WriteHeader(http.StatusOK)
+	} else {
+		w.WriteHeader(http.StatusNotFound)
+	}
+
+	// 空响应体
+	wr, err := w.Write([]byte(""))
+	logger.Info("HTTP song exists response written successfully", slog.Int("bytesWritten", wr))
+}
