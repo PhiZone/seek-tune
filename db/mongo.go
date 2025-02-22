@@ -19,7 +19,7 @@ type MongoClient struct {
 }
 
 func (db *MongoClient) TotalCopyrightSongs() (int, error) {
-	collection := db.client.Database("song-recognition").Collection("copyright_songs")
+	collection := db.client.Database("seektune").Collection("copyright_songs")
 	total, err := collection.CountDocuments(context.Background(), bson.D{})
 	if err != nil {
 		return 0, err
@@ -28,7 +28,7 @@ func (db *MongoClient) TotalCopyrightSongs() (int, error) {
 }
 
 func (db *MongoClient) CopyrightSongExistsByID(phiZoneID string) (bool, error) {
-	collection := db.client.Database("song-recognition").Collection("copyright_songs")
+	collection := db.client.Database("seektune").Collection("copyright_songs")
 	filter := bson.D{{Key: "PhiZoneID", Value: phiZoneID}}
 
 	err := collection.FindOne(context.Background(), filter).Err()
@@ -46,7 +46,7 @@ func (db *MongoClient) GetCopyrightSong(filterKey string, value interface{}) (So
 		return Song{}, false, errors.New("invalid filter key")
 	}
 
-	collection := db.client.Database("song-recognition").Collection("copyright_songs")
+	collection := db.client.Database("seektune").Collection("copyright_songs")
 	var song bson.M
 
 	filter := bson.M{filterKey: value}
@@ -82,7 +82,7 @@ func (db *MongoClient) GetCopyrightSongByPhiZoneID(PhiZoneID string) (Song, bool
 }
 
 func (db *MongoClient) DeleteCopyrightSongByID(songID string) error {
-	collection := db.client.Database("song-recognition").Collection("copyright_songs")
+	collection := db.client.Database("seektune").Collection("copyright_songs")
 
 	filter := bson.M{"_id": songID}
 
@@ -95,7 +95,7 @@ func (db *MongoClient) DeleteCopyrightSongByID(songID string) error {
 }
 
 func (db *MongoClient) DeleteCopyrightSongByPhiZoneID(PhiZoneID string) error {
-	collection := db.client.Database("song-recognition").Collection("copyright_songs")
+	collection := db.client.Database("seektune").Collection("copyright_songs")
 
 	filter := bson.M{"PhiZoneID": PhiZoneID}
 
@@ -107,7 +107,7 @@ func (db *MongoClient) DeleteCopyrightSongByPhiZoneID(PhiZoneID string) error {
 }
 
 func (db *MongoClient) DeleteCopyrightCollection(collectionName string) error {
-	collection := db.client.Database("song-recognition").Collection(collectionName)
+	collection := db.client.Database("seektune").Collection(collectionName)
 	err := collection.Drop(context.Background())
 	if err != nil {
 		return fmt.Errorf("error deleting collection: %v", err)
@@ -116,7 +116,7 @@ func (db *MongoClient) DeleteCopyrightCollection(collectionName string) error {
 }
 
 func (db *MongoClient) RegisterCopyrightSong(songTitle, songArtist, songID string) (string, error) {
-	collection := db.client.Database("song-recognition").Collection("copyright_songs")
+	collection := db.client.Database("seektune").Collection("copyright_songs")
 
 	// Create a compound unique index on songID and key, if it doesn't already exist
 	indexModel := mongo.IndexModel{
@@ -160,7 +160,7 @@ func (db *MongoClient) Close() error {
 }
 
 func (db *MongoClient) StoreFingerprints(fingerprints map[uint32]models.Couple) error {
-	collection := db.client.Database("song-recognition").Collection("fingerprints")
+	collection := db.client.Database("seektune").Collection("fingerprints")
 
 	for address, couple := range fingerprints {
 		filter := bson.M{"_id": address}
@@ -184,7 +184,7 @@ func (db *MongoClient) StoreFingerprints(fingerprints map[uint32]models.Couple) 
 }
 
 func (db *MongoClient) GetCouples(addresses []uint32) (map[uint32][]models.Couple, error) {
-	collection := db.client.Database("song-recognition").Collection("fingerprints")
+	collection := db.client.Database("seektune").Collection("fingerprints")
 
 	couples := make(map[uint32][]models.Couple)
 
@@ -225,7 +225,7 @@ func (db *MongoClient) GetCouples(addresses []uint32) (map[uint32][]models.Coupl
 }
 
 func (db *MongoClient) TotalSongs() (int, error) {
-	existingSongsCollection := db.client.Database("song-recognition").Collection("songs")
+	existingSongsCollection := db.client.Database("seektune").Collection("songs")
 	total, err := existingSongsCollection.CountDocuments(context.Background(), bson.D{})
 	if err != nil {
 		return 0, err
@@ -235,7 +235,7 @@ func (db *MongoClient) TotalSongs() (int, error) {
 }
 
 func (db *MongoClient) SongExistsByID(phiZoneID string) (bool, error) {
-	existingCollection := db.client.Database("song-recognition").Collection("songs")
+	existingCollection := db.client.Database("seektune").Collection("songs")
 	filter := bson.D{{Key: "PhiZoneID", Value: phiZoneID}}
 
 	err := existingCollection.FindOne(context.Background(), filter).Err()
@@ -249,7 +249,7 @@ func (db *MongoClient) SongExistsByID(phiZoneID string) (bool, error) {
 }
 
 func (db *MongoClient) FindNonExistentSongs(requestedIDs []string) ([]string, error) {
-	existingCollection := db.client.Database("song-recognition").Collection("songs")
+	existingCollection := db.client.Database("seektune").Collection("songs")
 
 	filter := bson.M{"PhiZoneID": bson.M{"$in": requestedIDs}}
 	cursor, err := existingCollection.Find(context.Background(), filter)
@@ -280,7 +280,7 @@ func (db *MongoClient) FindNonExistentSongs(requestedIDs []string) ([]string, er
 }
 
 func (db *MongoClient) RegisterSong(songTitle, songArtist, PhiZoneID string) (string, error) {
-	existingSongsCollection := db.client.Database("song-recognition").Collection("songs")
+	existingSongsCollection := db.client.Database("seektune").Collection("songs")
 
 	// Create a compound unique index on PhiZoneID and key, if it doesn't already exist
 	indexModel := mongo.IndexModel{
@@ -314,7 +314,7 @@ func (db *MongoClient) GetSong(filterKey string, value interface{}) (s Song, son
 		return Song{}, false, errors.New("invalid filter key")
 	}
 
-	songsCollection := db.client.Database("song-recognition").Collection("songs")
+	songsCollection := db.client.Database("seektune").Collection("songs")
 	var song bson.M
 
 	filter := bson.M{filterKey: value}
@@ -353,7 +353,7 @@ func (db *MongoClient) GetSongByKey(key string) (Song, bool, error) {
 }
 
 func (db *MongoClient) DeleteSongByID(id string) error {
-	songsCollection := db.client.Database("song-recognition").Collection("songs")
+	songsCollection := db.client.Database("seektune").Collection("songs")
 
 	filter := bson.M{"_id": id}
 
@@ -366,7 +366,7 @@ func (db *MongoClient) DeleteSongByID(id string) error {
 }
 
 func (db *MongoClient) DeleteCollection(collectionName string) error {
-	collection := db.client.Database("song-recognition").Collection(collectionName)
+	collection := db.client.Database("seektune").Collection(collectionName)
 	err := collection.Drop(context.Background())
 	if err != nil {
 		return fmt.Errorf("error deleting collection: %v", err)
@@ -375,7 +375,7 @@ func (db *MongoClient) DeleteCollection(collectionName string) error {
 }
 
 func (db *MongoClient) DeleteSongByPhiZoneID(PhiZoneID string) error {
-	songsCollection := db.client.Database("song-recognition").Collection("songs")
+	songsCollection := db.client.Database("seektune").Collection("songs")
 
 	filter := bson.M{"PhiZoneID": PhiZoneID}
 
