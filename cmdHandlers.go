@@ -131,11 +131,15 @@ func serveHTTP(socketServer *socketio.Server, serveHTTPS bool, port string) {
 	http.HandleFunc("/songs/checkExists", handleHttpSongExists)
 	http.HandleFunc("/songs/checkUnsaved", handleHttpSongsUnsaved)
 	http.HandleFunc("/songs/find", handleHttpFind)
+	http.HandleFunc("/songs/update", handleHttpUpdate)
+	http.HandleFunc("/songs/delete", handleHttpDelete)
 
 	http.HandleFunc("/resourceRecords/create", handleHttpCopyrightSave)
 	http.HandleFunc("/resourceRecords/total", handleHttpCopyrightTotalSongs)
 	http.HandleFunc("/resourceRecords/find", handleHttpCopyrightFind)
 	http.HandleFunc("/resourceRecords/checkExists", handleHttpCopyrightExists)
+	http.HandleFunc("/resourceRecords/update", handleHttpCopyrightUpdate)
+	http.HandleFunc("/resourceRecords/delete", handleHttpCopyrightDelete)
 
 	if serveHTTPS {
 		httpsAddr := ":" + port

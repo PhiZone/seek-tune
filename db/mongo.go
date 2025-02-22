@@ -76,6 +76,11 @@ func (db *MongoClient) GetCopyrightSongByKey(key string) (Song, bool, error) {
 	return db.GetCopyrightSong("key", key)
 }
 
+func (db *MongoClient) GetCopyrightSongByPhiZoneID(PhiZoneID string) (Song, bool, error) {
+	return db.GetCopyrightSong("PhiZoneID", PhiZoneID)
+
+}
+
 func (db *MongoClient) DeleteCopyrightSongByID(songID string) error {
 	collection := db.client.Database("song-recognition").Collection("copyright_songs")
 
@@ -86,6 +91,18 @@ func (db *MongoClient) DeleteCopyrightSongByID(songID string) error {
 		return fmt.Errorf("failed to delete song: %v", err)
 	}
 
+	return nil
+}
+
+func (db *MongoClient) DeleteCopyrightSongByPhiZoneID(PhiZoneID string) error {
+	collection := db.client.Database("song-recognition").Collection("copyright_songs")
+
+	filter := bson.M{"PhiZoneID": PhiZoneID}
+
+	_, err := collection.DeleteOne(context.Background(), filter)
+	if err != nil {
+		return fmt.Errorf("failed to delete song: %v", err)
+	}
 	return nil
 }
 
@@ -323,6 +340,10 @@ func (db *MongoClient) GetSongByID(id string) (Song, bool, error) {
 	return db.GetSong("_id", id)
 }
 
+func (db *MongoClient) GetSongByPhiZoneID(PhiZoneID string) (Song, bool, error) {
+	return db.GetSong("PhiZoneID", PhiZoneID)
+}
+
 func (db *MongoClient) GetSongByYTID(PhiZoneID string) (Song, bool, error) {
 	return db.GetSong("PhiZoneID", PhiZoneID)
 }
@@ -351,4 +372,18 @@ func (db *MongoClient) DeleteCollection(collectionName string) error {
 		return fmt.Errorf("error deleting collection: %v", err)
 	}
 	return nil
+}
+
+func (db *MongoClient) DeleteSongByPhiZoneID(PhiZoneID string) error {
+	songsCollection := db.client.Database("song-recognition").Collection("songs")
+
+	filter := bson.M{"PhiZoneID": PhiZoneID}
+
+	_, err := songsCollection.DeleteOne(context.Background(), filter)
+	if err != nil {
+		return fmt.Errorf("failed to delete song: %v", err)
+	}
+
+	return nil
+
 }

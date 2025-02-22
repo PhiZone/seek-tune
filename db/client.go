@@ -15,19 +15,23 @@ type DBClient interface {
 	FindNonExistentSongs(requestedIDs []string) ([]string, error)
 	RegisterSong(songTitle, songArtist, ytID string) (string, error)
 	GetSong(filterKey string, value interface{}) (Song, bool, error)
-	GetSongByID(PhiZoneID string) (Song, bool, error)
+	GetSongByID(songID string) (Song, bool, error)
+	GetSongByPhiZoneID(phiZoneID string) (Song, bool, error)
 	GetSongByYTID(ytID string) (Song, bool, error)
 	GetSongByKey(key string) (Song, bool, error)
 	DeleteSongByID(songID string) error
 	DeleteCollection(collectionName string) error
+	DeleteSongByPhiZoneID(phiZoneID string) error
 
 	RegisterCopyrightSong(songTitle, songArtist, songID string) (string, error)
 	TotalCopyrightSongs() (int, error)
 	CopyrightSongExistsByID(phiZoneID string) (bool, error)
 	GetCopyrightSong(filterKey string, value interface{}) (Song, bool, error)
 	GetCopyrightSongByID(PhiZoneID string) (Song, bool, error)
+	GetCopyrightSongByPhiZoneID(phiZoneID string) (Song, bool, error)
 	GetCopyrightSongByKey(key string) (Song, bool, error)
 	DeleteCopyrightSongByID(songID string) error
+	DeleteCopyrightSongByPhiZoneID(phiZoneID string) error
 	DeleteCopyrightCollection(collectionName string) error
 }
 
