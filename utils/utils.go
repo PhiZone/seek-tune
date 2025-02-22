@@ -5,7 +5,6 @@ import (
 	"io"
 	"math/rand"
 	"net/http"
-	"net/url"
 	"os"
 	"path"
 	"time"
@@ -33,15 +32,8 @@ func GetEnv(key string, fallback ...string) string {
 	return ""
 }
 
-func DownloadFile(fileURL, destDir string) (string, error) {
-	// 解析URL
-	parsedURL, err := url.Parse(fileURL)
-	if err != nil {
-		return "", err
-	}
+func DownloadFile(fileURL, destDir string, tempFileName string) (string, error) {
 
-	// 从URL路径中提取文件名
-	fileName := path.Base(parsedURL.Path)
 	// 先检查目标目录是否存在
 	if _, err := os.Stat(destDir); os.IsNotExist(err) {
 		// 不存在则创建目录
@@ -52,7 +44,7 @@ func DownloadFile(fileURL, destDir string) (string, error) {
 	}
 
 	// 创建目标文件
-	destPath := path.Join(destDir, fileName)
+	destPath := path.Join(destDir, tempFileName)
 	out, err := os.Create(destPath)
 	if err != nil {
 		return "", err
@@ -78,5 +70,5 @@ func DownloadFile(fileURL, destDir string) (string, error) {
 	}
 
 	// 返回文件路径
-	return path.Join(destDir, fileName), nil
+	return path.Join(destDir, tempFileName), nil
 }

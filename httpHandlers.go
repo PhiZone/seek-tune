@@ -50,7 +50,7 @@ func handleHttpSave(w http.ResponseWriter, r *http.Request) {
 	// 如果是URL，使用末尾的文件名作为音乐文件名，缓存到./urlSongTemp目录下
 	if songURL != "" {
 		//使用GET请求下载文件
-		filePath, err := utils.DownloadFile(songURL, "./urlSongTemp")
+		filePath, err := utils.DownloadFile(songURL, "./urlSongTemp", pzID)
 		if err != nil {
 			// 如果下载失败，返回错误信息
 			http.Error(w, err.Error(), http.StatusInternalServerError) // 状态码: 500
@@ -201,7 +201,7 @@ func handleHttpFind(w http.ResponseWriter, r *http.Request) {
 	}
 	// 如果是URL，使用末尾的文件名作为音乐文件名，缓存到./urlSongTemp目录下
 	if songURL != "" {
-		filePath, err := utils.DownloadFile(songURL, "./urlSongTemp")
+		filePath, err := utils.DownloadFile(songURL, "./urlSongTemp", utils.GenerateUniqueID())
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			logger.Info(err.Error())
@@ -368,7 +368,7 @@ func handleHttpUpdate(w http.ResponseWriter, r *http.Request) {
 	// 如果是URL，使用末尾的文件名作为音乐文件名，缓存到./urlSongTemp目录下
 	if songURL != "" {
 		//使用GET请求下载文件
-		filePath, err := utils.DownloadFile(songURL, "./urlSongTemp")
+		filePath, err := utils.DownloadFile(songURL, "./urlSongTemp", pzID)
 		if err != nil {
 			// 如果下载失败，返回错误信息
 			http.Error(w, err.Error(), http.StatusInternalServerError) // 状态码: 500
@@ -490,7 +490,7 @@ func handleHttpCopyrightSave(w http.ResponseWriter, r *http.Request) {
 	// 如果是URL，使用末尾的文件名作为音乐文件名，缓存到./urlSongTemp目录下
 	if songURL != "" {
 		//使用GET请求下载文件
-		filePath, err := utils.DownloadFile(songURL, "./urlSongTemp")
+		filePath, err := utils.DownloadFile(songURL, "./urlSongTemp", pzID)
 		if err != nil {
 			// 如果下载失败，返回错误信息
 			http.Error(w, err.Error(), http.StatusInternalServerError) // 状态码: 500
@@ -603,7 +603,7 @@ func handleHttpCopyrightFind(w http.ResponseWriter, r *http.Request) {
 	}
 	// 如果是URL，使用末尾的文件名作为音乐文件名，缓存到./urlSongTemp目录下
 	if songURL != "" {
-		filePath, err := utils.DownloadFile(songURL, "./urlSongTemp")
+		filePath, err := utils.DownloadFile(songURL, "./urlSongTemp", utils.GenerateUniqueID())
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			logger.Info(err.Error())
@@ -771,7 +771,7 @@ func handleHttpCopyrightUpdate(w http.ResponseWriter, r *http.Request) {
 	// 如果是URL，使用末尾的文件名作为音乐文件名，缓存到./urlSongTemp目录下
 	if songURL != "" {
 		//使用GET请求下载文件
-		filePath, err := utils.DownloadFile(songURL, "./urlSongTemp")
+		filePath, err := utils.DownloadFile(songURL, "./urlSongTemp", pzID)
 		if err != nil {
 			// 如果下载失败，返回错误信息
 			http.Error(w, err.Error(), http.StatusInternalServerError) // 状态码: 500
