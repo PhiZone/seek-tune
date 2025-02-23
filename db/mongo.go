@@ -78,7 +78,6 @@ func (db *MongoClient) GetCopyrightSongByKey(key string) (Song, bool, error) {
 
 func (db *MongoClient) GetCopyrightSongByPhiZoneID(PhiZoneID string) (Song, bool, error) {
 	return db.GetCopyrightSong("PhiZoneID", PhiZoneID)
-
 }
 
 func (db *MongoClient) DeleteCopyrightSongByID(songID string) error {
