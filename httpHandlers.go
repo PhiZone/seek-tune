@@ -67,12 +67,11 @@ func handleHttpSave(w http.ResponseWriter, r *http.Request) {
 	}
 	defer database.Close()
 
-	song, songExists, err := database.GetSongByKey(utils.GenerateSongKey(title, artist))
+	_, songExists, err := database.GetSongByPhiZoneID(pzID) //GetSongByKey(utils.GenerateSongKey(title, artist))
 	if err == nil {
 		if songExists {
-			statusMsg := fmt.Sprintf(
-				"'%s' by '%s' already exists in the database (https://www.phi.zone/songs/%s)",
-				song.Title, song.Artist, song.SongID) // Artist的Title已经存在于数据库中（https://www.phi.zone/songs/ID）
+			// 这个ID 已经存在于数据库中
+			statusMsg := fmt.Sprintf("phizoneID: %s already exists in the database", pzID)
 			http.Error(w, statusMsg, http.StatusConflict) // 状态码: 409
 			return
 		}
@@ -507,7 +506,7 @@ func handleHttpCopyrightSave(w http.ResponseWriter, r *http.Request) {
 	}
 	defer database.Close()
 
-	song, songExists, err := database.GetCopyrightSongByID(utils.GenerateSongKey(title, artist))
+	song, songExists, err := database.GetCopyrightSongByKey(utils.GenerateSongKey(title, artist))
 	if err == nil {
 		if songExists {
 			statusMsg := fmt.Sprintf(

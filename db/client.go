@@ -27,7 +27,7 @@ type DBClient interface {
 	TotalCopyrightSongs() (int, error)
 	CopyrightSongExistsByID(phiZoneID string) (bool, error)
 	GetCopyrightSong(filterKey string, value interface{}) (Song, bool, error)
-	GetCopyrightSongByID(PhiZoneID string) (Song, bool, error)
+	GetCopyrightSongByID(songId string) (Song, bool, error)
 	GetCopyrightSongByPhiZoneID(phiZoneID string) (Song, bool, error)
 	GetCopyrightSongByKey(key string) (Song, bool, error)
 	DeleteCopyrightSongByID(songID string) error

@@ -68,8 +68,8 @@ func (db *MongoClient) GetCopyrightSong(filterKey string, value interface{}) (So
 	return songInstance, true, nil
 }
 
-func (db *MongoClient) GetCopyrightSongByID(PhiZoneID string) (Song, bool, error) {
-	return db.GetCopyrightSong("PhiZoneID", PhiZoneID)
+func (db *MongoClient) GetCopyrightSongByID(songId string) (Song, bool, error) {
+	return db.GetCopyrightSong("_id", songId)
 }
 
 func (db *MongoClient) GetCopyrightSongByKey(key string) (Song, bool, error) {
@@ -376,10 +376,19 @@ func (db *MongoClient) DeleteCollection(collectionName string) error {
 
 func (db *MongoClient) DeleteSongByPhiZoneID(PhiZoneID string) error {
 	songsCollection := db.client.Database("song-recognition").Collection("songs")
-
+	// 先根据PhiZoneID查找到对应的歌曲的_id，然后再根据_id删除
+	var song bson.M // 用于存储查询结果
 	filter := bson.M{"PhiZoneID": PhiZoneID}
+	err := songsCollection.FindOne(context.Background(), filter).Decode(&song)
+	if err != nil {
+		return fmt.Errorf("failed to find song by PhiZoneID: %v", err)
+	}
+	// 获取_id
+	id := song["_id"]
+	// 删除
+	filter = bson.M{"_id": id}
+	_, err = songsCollection.DeleteOne(context.Background(), filter)
 
-	_, err := songsCollection.DeleteOne(context.Background(), filter)
 	if err != nil {
 		return fmt.Errorf("failed to delete song: %v", err)
 	}
