@@ -305,7 +305,7 @@ func handleHttpSongExists(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 空响应体
-	wr, err := w.Write([]byte(""))
+	wr, _ := w.Write([]byte(""))
 	logger.Info("HTTP song exists response written successfully", slog.Int("bytesWritten", wr))
 }
 
@@ -709,7 +709,7 @@ func handleHttpCopyrightExists(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 空响应体
-	wr, err := w.Write([]byte(""))
+	wr, _ := w.Write([]byte(""))
 	logger.Info("HTTP song exists response written successfully", slog.Int("bytesWritten", wr))
 }
 
