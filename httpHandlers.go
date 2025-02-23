@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/mdobak/go-xerrors"
 	"log/slog"
 	"net/http"
 	"os"
@@ -13,6 +12,8 @@ import (
 	"song-recognition/spotify"
 	"song-recognition/utils"
 	"song-recognition/wav"
+
+	"github.com/mdobak/go-xerrors"
 )
 
 // 歌曲保存
@@ -71,8 +72,8 @@ func handleHttpSave(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		if songExists {
 			statusMsg := fmt.Sprintf(
-				"'%s' by '%s' already exists in the database (https://www.phi.zone/songs/%s)",
-				song.Title, song.Artist, song.SongID) // Artist的Title已经存在于数据库中（https://www.phi.zone/songs/ID）
+				"'%s' by '%s' already exists in the database (ID: %s)",
+				song.Title, song.Artist, song.SongID) // Artist的Title已经存在于数据库中
 			http.Error(w, statusMsg, http.StatusConflict) // 状态码: 409
 			return
 		}
@@ -306,7 +307,7 @@ func handleHttpSongExists(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 空响应体
-	wr, err := w.Write([]byte(""))
+	wr, _ := w.Write([]byte(""))
 	logger.Info("HTTP song exists response written successfully", slog.Int("bytesWritten", wr))
 }
 
@@ -710,7 +711,7 @@ func handleHttpCopyrightExists(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 空响应体
-	wr, err := w.Write([]byte(""))
+	wr, _ := w.Write([]byte(""))
 	logger.Info("HTTP song exists response written successfully", slog.Int("bytesWritten", wr))
 }
 
