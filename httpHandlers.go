@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/mdobak/go-xerrors"
 	"log/slog"
 	"net/http"
 	"os"
@@ -13,6 +12,8 @@ import (
 	"song-recognition/spotify"
 	"song-recognition/utils"
 	"song-recognition/wav"
+
+	"github.com/mdobak/go-xerrors"
 )
 
 // 歌曲保存
@@ -36,21 +37,21 @@ func handleHttpSave(w http.ResponseWriter, r *http.Request) {
 	songURL := r.FormValue("songUrl")   // 远程文件URL
 	title := r.FormValue("title")       // 歌曲标题
 	artist := r.FormValue("artist")     // 曲师
-	pzID := r.FormValue("pzID")         // PhiZoneID
+	uuid := r.FormValue("uuid")         // UUID
 	// 检查所有字段是否都有值，songPath和songURL至少有一个
 	if (songPath == "" && songURL == "") || (songPath != "" && songURL != "") {
 		http.Error(w, "Either songPath or songUrl must be provided, but not both", http.StatusBadRequest) // 状态码: 400
 		return
 	}
 	// 其他字段不能为空
-	if title == "" || artist == "" || pzID == "" {
-		http.Error(w, "Missing required field: title, artist, or pzID", http.StatusBadRequest) // 状态码: 400
+	if title == "" || artist == "" || uuid == "" {
+		http.Error(w, "Missing required field: title, artist, or uuid", http.StatusBadRequest) // 状态码: 400
 		return
 	}
 	// 如果是URL，使用末尾的文件名作为音乐文件名，缓存到./urlSongTemp目录下
 	if songURL != "" {
 		//使用GET请求下载文件
-		filePath, err := utils.DownloadFile(songURL, "./urlSongTemp", pzID)
+		filePath, err := utils.DownloadFile(songURL, "./urlSongTemp", uuid)
 		if err != nil {
 			// 如果下载失败，返回错误信息
 			http.Error(w, err.Error(), http.StatusInternalServerError) // 状态码: 500
@@ -67,11 +68,11 @@ func handleHttpSave(w http.ResponseWriter, r *http.Request) {
 	}
 	defer database.Close()
 
-	_, songExists, err := database.GetSongByPhiZoneID(pzID) //GetSongByKey(utils.GenerateSongKey(title, artist))
+	_, songExists, err := database.GetSongByUUID(uuid) //GetSongByKey(utils.GenerateSongKey(title, artist))
 	if err == nil {
 		if songExists {
-			// 这个ID 已经存在于数据库中
-			statusMsg := fmt.Sprintf("phizoneID: %s already exists in the database", pzID)
+			// 这个ID已经存在于数据库中
+			statusMsg := fmt.Sprintf("UUID: %s already exists in the database", uuid)
 			http.Error(w, statusMsg, http.StatusConflict) // 状态码: 409
 			return
 		}
@@ -82,7 +83,7 @@ func handleHttpSave(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = spotify.ProcessAndSaveSong(songPath, title, artist, pzID)
+	err = spotify.ProcessAndSaveSong(songPath, title, artist, uuid)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError) // 状态码: 500
 		logger.Info(err.Error())
@@ -240,7 +241,7 @@ func handleHttpFind(w http.ResponseWriter, r *http.Request) {
 	var simplifiedMatches []map[string]interface{}
 	for _, match := range matches {
 		simplifiedMatches = append(simplifiedMatches, map[string]interface{}{
-			"id":    match.PhiZoneID,
+			"id":    match.UUID,
 			"score": match.Score,
 		})
 	}
@@ -264,7 +265,7 @@ func handleHttpFind(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// 通过PhiZoneID查找歌曲是否存在
+// 通过UUID查找歌曲是否存在
 func handleHttpSongExists(w http.ResponseWriter, r *http.Request) {
 	logger := utils.GetLogger()
 	ctx := context.Background()
@@ -275,9 +276,9 @@ func handleHttpSongExists(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	phiZoneID := r.URL.Query().Get("pzID")
-	if phiZoneID == "" {
-		http.Error(w, "Missing required field: pzID", http.StatusBadRequest)
+	uuid := r.URL.Query().Get("uuid")
+	if uuid == "" {
+		http.Error(w, "Missing required field: uuid", http.StatusBadRequest)
 		return
 	}
 
@@ -290,7 +291,7 @@ func handleHttpSongExists(w http.ResponseWriter, r *http.Request) {
 	}
 	defer db.Close()
 
-	exists, err := db.SongExistsByID(phiZoneID)
+	exists, err := db.SongExistsByID(uuid)
 	if err != nil {
 		err := xerrors.New(err)
 		logger.ErrorContext(ctx, "error checking song existence", slog.Any("error", err))
@@ -309,7 +310,7 @@ func handleHttpSongExists(w http.ResponseWriter, r *http.Request) {
 	logger.Info("HTTP song exists response written successfully", slog.Int("bytesWritten", wr))
 }
 
-// 更新PhiZoneID对应的歌曲信息
+// 更新UUID对应的歌曲信息
 func handleHttpUpdate(w http.ResponseWriter, r *http.Request) {
 	logger := utils.GetLogger()
 	ctx := context.Background()
@@ -330,15 +331,15 @@ func handleHttpUpdate(w http.ResponseWriter, r *http.Request) {
 	songURL := r.FormValue("songUrl")   // 远程文件URL
 	title := r.FormValue("title")       // 歌曲标题
 	artist := r.FormValue("artist")     // 曲师
-	pzID := r.FormValue("pzID")         // PhiZoneID
+	uuid := r.FormValue("uuid")         // UUID
 	// 检查所有字段是否都有值，songPath和songURL至少有一个
 	if (songPath == "" && songURL == "") || (songPath != "" && songURL != "") {
 		http.Error(w, "Either songPath or songUrl must be provided, but not both", http.StatusBadRequest) // 状态码: 400
 		return
 	}
 	// 其他字段不能为空
-	if title == "" || artist == "" || pzID == "" {
-		http.Error(w, "Missing required field: title, artist, or pzID", http.StatusBadRequest) // 状态码: 400
+	if title == "" || artist == "" || uuid == "" {
+		http.Error(w, "Missing required field: title, artist, or uuid", http.StatusBadRequest) // 状态码: 400
 		return
 	}
 
@@ -350,10 +351,10 @@ func handleHttpUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 	defer database.Close()
 
-	_, songExists, err := database.GetSongByPhiZoneID(pzID)
+	_, songExists, err := database.GetSongByUUID(uuid)
 	if err == nil {
 		if !songExists {
-			statusMsg := fmt.Sprintf("No data found for pzID: %s", pzID)
+			statusMsg := fmt.Sprintf("No data found for uuid: %s", uuid)
 			http.Error(w, statusMsg, http.StatusNotFound) // 状态码: 404
 			return
 		}
@@ -367,7 +368,7 @@ func handleHttpUpdate(w http.ResponseWriter, r *http.Request) {
 	// 如果是URL，使用末尾的文件名作为音乐文件名，缓存到./urlSongTemp目录下
 	if songURL != "" {
 		//使用GET请求下载文件
-		filePath, err := utils.DownloadFile(songURL, "./urlSongTemp", pzID)
+		filePath, err := utils.DownloadFile(songURL, "./urlSongTemp", uuid)
 		if err != nil {
 			// 如果下载失败，返回错误信息
 			http.Error(w, err.Error(), http.StatusInternalServerError) // 状态码: 500
@@ -376,14 +377,14 @@ func handleHttpUpdate(w http.ResponseWriter, r *http.Request) {
 		songPath = filePath
 	}
 
-	err = spotify.ProcessAndUpdateSong(songPath, title, artist, pzID)
+	err = spotify.ProcessAndUpdateSong(songPath, title, artist, uuid)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError) // 状态码: 500
 		logger.Info(err.Error())
 		return
 	}
 
-	statusMsg := fmt.Sprintf("'%s' was update", pzID) // 歌曲已保存
+	statusMsg := fmt.Sprintf("'%s' was update", uuid) // 歌曲已保存
 	w.WriteHeader(http.StatusOK)                      // 状态码: 200
 	wr, err := w.Write([]byte(statusMsg))
 	if err != nil {
@@ -410,8 +411,8 @@ func handleHttpDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 从请求参数中获取pzID
-	pzID := r.FormValue("pzID")
+	// 从请求参数中获取uuid
+	uuid := r.FormValue("uuid")
 
 	database, err := db.NewDBClient()
 	if err != nil {
@@ -422,7 +423,7 @@ func handleHttpDelete(w http.ResponseWriter, r *http.Request) {
 	defer database.Close()
 
 	// 先检查歌曲是否存在
-	_, songExists, err := database.GetSongByPhiZoneID(pzID)
+	_, songExists, err := database.GetSongByUUID(uuid)
 	if err != nil {
 		err := xerrors.New(err)
 		logger.ErrorContext(ctx, "error checking song existence", slog.Any("error", err))
@@ -430,12 +431,12 @@ func handleHttpDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !songExists {
-		statusMsg := fmt.Sprintf("No data found for pzID: %s", pzID)
+		statusMsg := fmt.Sprintf("No data found for uuid: %s", uuid)
 		http.Error(w, statusMsg, http.StatusNotFound) // 状态码: 404
 		return
 	}
 
-	err = database.DeleteSongByPhiZoneID(pzID)
+	err = database.DeleteSongByUUID(uuid)
 	if err != nil {
 		err := xerrors.New(err)
 		logger.ErrorContext(ctx, "error deleting song", slog.Any("error", err))
@@ -443,7 +444,7 @@ func handleHttpDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	statusMsg := fmt.Sprintf("'%s' was deleted", pzID) // 歌曲已删除
+	statusMsg := fmt.Sprintf("'%s' was deleted", uuid) // 歌曲已删除
 	w.WriteHeader(http.StatusOK)                       // 状态码: 200
 	wr, err := w.Write([]byte(statusMsg))
 	if err != nil {
@@ -475,21 +476,21 @@ func handleHttpCopyrightSave(w http.ResponseWriter, r *http.Request) {
 	songURL := r.FormValue("songUrl")   // 远程文件URL
 	title := r.FormValue("title")       // 歌曲标题
 	artist := r.FormValue("artist")     // 曲师
-	pzID := r.FormValue("pzID")         // PhiZoneID
+	uuid := r.FormValue("uuid")         // UUID
 	// 检查所有字段是否都有值，songPath和songURL至少有一个
 	if (songPath == "" && songURL == "") || (songPath != "" && songURL != "") {
 		http.Error(w, "Either songPath or songUrl must be provided, but not both", http.StatusBadRequest) // 状态码: 400
 		return
 	}
 	// 其他字段不能为空
-	if title == "" || artist == "" || pzID == "" {
-		http.Error(w, "Missing required field: title, artist, or pzID", http.StatusBadRequest) // 状态码: 400
+	if title == "" || artist == "" || uuid == "" {
+		http.Error(w, "Missing required field: title, artist, or uuid", http.StatusBadRequest) // 状态码: 400
 		return
 	}
 	// 如果是URL，使用末尾的文件名作为音乐文件名，缓存到./urlSongTemp目录下
 	if songURL != "" {
 		//使用GET请求下载文件
-		filePath, err := utils.DownloadFile(songURL, "./urlSongTemp", pzID)
+		filePath, err := utils.DownloadFile(songURL, "./urlSongTemp", uuid)
 		if err != nil {
 			// 如果下载失败，返回错误信息
 			http.Error(w, err.Error(), http.StatusInternalServerError) // 状态码: 500
@@ -522,7 +523,7 @@ func handleHttpCopyrightSave(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = spotify.ProcessAndSaveCopyrightSong(songPath, title, artist, pzID)
+	err = spotify.ProcessAndSaveCopyrightSong(songPath, title, artist, uuid)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError) // 状态码: 500
 		logger.Info(err.Error())
@@ -642,7 +643,7 @@ func handleHttpCopyrightFind(w http.ResponseWriter, r *http.Request) {
 	var simplifiedMatches []map[string]interface{}
 	for _, match := range matches {
 		simplifiedMatches = append(simplifiedMatches, map[string]interface{}{
-			"id":    match.PhiZoneID,
+			"id":    match.UUID,
 			"score": match.Score,
 		})
 	}
@@ -676,10 +677,10 @@ func handleHttpCopyrightExists(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 从请求参数中获取PhiZoneID
-	phiZoneID := r.URL.Query().Get("pzID")
-	if phiZoneID == "" {
-		http.Error(w, "Missing required field: pzID", http.StatusBadRequest)
+	// 从请求参数中获取UUID
+	uuid := r.URL.Query().Get("uuid")
+	if uuid == "" {
+		http.Error(w, "Missing required field: uuid", http.StatusBadRequest)
 		return
 	}
 
@@ -693,8 +694,8 @@ func handleHttpCopyrightExists(w http.ResponseWriter, r *http.Request) {
 	}
 	defer db.Close()
 
-	// 检查PhiZoneID对应的歌曲是否存在
-	exists, err := db.CopyrightSongExistsByID(phiZoneID)
+	// 检查UUID对应的歌曲是否存在
+	exists, err := db.CopyrightSongExistsByID(uuid)
 	if err != nil {
 		err := xerrors.New(err)
 		logger.ErrorContext(ctx, "error checking song existence", slog.Any("error", err))
@@ -733,15 +734,15 @@ func handleHttpCopyrightUpdate(w http.ResponseWriter, r *http.Request) {
 	songURL := r.FormValue("songUrl")   // 远程文件URL
 	title := r.FormValue("title")       // 歌曲标题
 	artist := r.FormValue("artist")     // 曲师
-	pzID := r.FormValue("pzID")         // PhiZoneID
+	uuid := r.FormValue("uuid")         // UUID
 	// 检查所有字段是否都有值，songPath和songURL至少有一个
 	if (songPath == "" && songURL == "") || (songPath != "" && songURL != "") {
 		http.Error(w, "Either songPath or songUrl must be provided, but not both", http.StatusBadRequest) // 状态码: 400
 		return
 	}
 	// 其他字段不能为空
-	if title == "" || artist == "" || pzID == "" {
-		http.Error(w, "Missing required field: title, artist, or pzID", http.StatusBadRequest) // 状态码: 400
+	if title == "" || artist == "" || uuid == "" {
+		http.Error(w, "Missing required field: title, artist, or uuid", http.StatusBadRequest) // 状态码: 400
 		return
 	}
 
@@ -753,10 +754,10 @@ func handleHttpCopyrightUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 	defer database.Close()
 
-	_, songExists, err := database.GetCopyrightSongByPhiZoneID(pzID)
+	_, songExists, err := database.GetCopyrightSongByUUID(uuid)
 	if err == nil {
 		if !songExists {
-			statusMsg := fmt.Sprintf("No data found for pzID: %s", pzID)
+			statusMsg := fmt.Sprintf("No data found for uuid: %s", uuid)
 			http.Error(w, statusMsg, http.StatusNotFound) // 状态码: 404
 			return
 		}
@@ -770,7 +771,7 @@ func handleHttpCopyrightUpdate(w http.ResponseWriter, r *http.Request) {
 	// 如果是URL，使用末尾的文件名作为音乐文件名，缓存到./urlSongTemp目录下
 	if songURL != "" {
 		//使用GET请求下载文件
-		filePath, err := utils.DownloadFile(songURL, "./urlSongTemp", pzID)
+		filePath, err := utils.DownloadFile(songURL, "./urlSongTemp", uuid)
 		if err != nil {
 			// 如果下载失败，返回错误信息
 			http.Error(w, err.Error(), http.StatusInternalServerError) // 状态码: 500
@@ -779,14 +780,14 @@ func handleHttpCopyrightUpdate(w http.ResponseWriter, r *http.Request) {
 		songPath = filePath
 	}
 
-	err = spotify.ProcessAndUpdateCopyrightSong(songPath, title, artist, pzID)
+	err = spotify.ProcessAndUpdateCopyrightSong(songPath, title, artist, uuid)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError) // 状态码: 500
 		logger.Info(err.Error())
 		return
 	}
 
-	statusMsg := fmt.Sprintf("'%s' was update", pzID) // 歌曲已保存
+	statusMsg := fmt.Sprintf("'%s' was update", uuid) // 歌曲已保存
 	w.WriteHeader(http.StatusOK)                      // 状态码: 200
 	wr, err := w.Write([]byte(statusMsg))
 	if err != nil {
@@ -813,8 +814,8 @@ func handleHttpCopyrightDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 从请求参数中获取pzID
-	pzID := r.FormValue("pzID")
+	// 从请求参数中获取uuid
+	uuid := r.FormValue("uuid")
 
 	database, err := db.NewDBClient()
 	if err != nil {
@@ -825,7 +826,7 @@ func handleHttpCopyrightDelete(w http.ResponseWriter, r *http.Request) {
 	defer database.Close()
 
 	// 先检查歌曲是否存在
-	_, songExists, err := database.GetCopyrightSongByPhiZoneID(pzID)
+	_, songExists, err := database.GetCopyrightSongByUUID(uuid)
 	if err != nil {
 		err := xerrors.New(err)
 		logger.ErrorContext(ctx, "error checking song existence", slog.Any("error", err))
@@ -833,12 +834,12 @@ func handleHttpCopyrightDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !songExists {
-		statusMsg := fmt.Sprintf("No data found for pzID: %s", pzID)
+		statusMsg := fmt.Sprintf("No data found for uuid: %s", uuid)
 		http.Error(w, statusMsg, http.StatusNotFound) // 状态码: 404
 		return
 	}
 
-	err = database.DeleteCopyrightSongByPhiZoneID(pzID)
+	err = database.DeleteCopyrightSongByUUID(uuid)
 	if err != nil {
 		err := xerrors.New(err)
 		logger.ErrorContext(ctx, "error deleting song", slog.Any("error", err))
@@ -846,7 +847,7 @@ func handleHttpCopyrightDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	statusMsg := fmt.Sprintf("'%s' was deleted", pzID) // 歌曲已删除
+	statusMsg := fmt.Sprintf("'%s' was deleted", uuid) // 歌曲已删除
 	w.WriteHeader(http.StatusOK)                       // 状态码: 200
 	wr, err := w.Write([]byte(statusMsg))
 	if err != nil {

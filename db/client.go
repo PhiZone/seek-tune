@@ -11,27 +11,27 @@ type DBClient interface {
 	StoreFingerprints(fingerprints map[uint32]models.Couple) error
 	GetCouples(addresses []uint32) (map[uint32][]models.Couple, error)
 	TotalSongs() (int, error)
-	SongExistsByID(phiZoneID string) (bool, error)
+	SongExistsByID(uuid string) (bool, error)
 	FindNonExistentSongs(requestedIDs []string) ([]string, error)
 	RegisterSong(songTitle, songArtist, ytID string) (string, error)
 	GetSong(filterKey string, value interface{}) (Song, bool, error)
 	GetSongByID(songID string) (Song, bool, error)
-	GetSongByPhiZoneID(phiZoneID string) (Song, bool, error)
+	GetSongByUUID(uuid string) (Song, bool, error)
 	GetSongByYTID(ytID string) (Song, bool, error)
 	GetSongByKey(key string) (Song, bool, error)
 	DeleteSongByID(songID string) error
 	DeleteCollection(collectionName string) error
-	DeleteSongByPhiZoneID(phiZoneID string) error
+	DeleteSongByUUID(uuid string) error
 
 	RegisterCopyrightSong(songTitle, songArtist, songID string) (string, error)
 	TotalCopyrightSongs() (int, error)
-	CopyrightSongExistsByID(phiZoneID string) (bool, error)
+	CopyrightSongExistsByID(uuid string) (bool, error)
 	GetCopyrightSong(filterKey string, value interface{}) (Song, bool, error)
 	GetCopyrightSongByID(songId string) (Song, bool, error)
-	GetCopyrightSongByPhiZoneID(phiZoneID string) (Song, bool, error)
+	GetCopyrightSongByUUID(uuid string) (Song, bool, error)
 	GetCopyrightSongByKey(key string) (Song, bool, error)
 	DeleteCopyrightSongByID(songID string) error
-	DeleteCopyrightSongByPhiZoneID(phiZoneID string) error
+	DeleteCopyrightSongByUUID(uuid string) error
 	DeleteCopyrightCollection(collectionName string) error
 }
 

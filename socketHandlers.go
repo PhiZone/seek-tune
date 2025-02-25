@@ -50,7 +50,7 @@ func handleTotalSongs(socket socketio.Conn) {
 	socket.Emit("totalSongs", totalSongs)
 }
 
-func handleSongExists(socket socketio.Conn, phiZoneID string) {
+func handleSongExists(socket socketio.Conn, uuid string) {
 	logger := utils.GetLogger()
 	ctx := context.Background()
 
@@ -62,7 +62,7 @@ func handleSongExists(socket socketio.Conn, phiZoneID string) {
 	}
 	defer db.Close()
 
-	exists, err := db.SongExistsByID(phiZoneID)
+	exists, err := db.SongExistsByID(uuid)
 	if err != nil {
 		err := xerrors.New(err)
 		logger.ErrorContext(ctx, "error checking song existence", slog.Any("error", err))
@@ -94,7 +94,7 @@ func handleSongsUnsaved(socket socketio.Conn, requestedIDs []string) {
 	socket.Emit("songsUnsaved", nonExistentIDs)
 }
 
-func handleSave(socket socketio.Conn, songPath string, title string, artist string, pzID string) {
+func handleSave(socket socketio.Conn, songPath string, title string, artist string, uuid string) {
 	logger := utils.GetLogger()
 	ctx := context.Background()
 
@@ -120,7 +120,7 @@ func handleSave(socket socketio.Conn, songPath string, title string, artist stri
 		logger.ErrorContext(ctx, "failed to get song by key", slog.Any("error", err))
 	}
 
-	err = spotify.ProcessAndSaveSong(songPath, title, artist, pzID)
+	err = spotify.ProcessAndSaveSong(songPath, title, artist, uuid)
 	if err != nil {
 		socket.Emit("saveStatus", status("error", err.Error()))
 		logger.Info(err.Error())
@@ -165,7 +165,7 @@ func handleFind(socket socketio.Conn, songFilePath string) {
 	var simplifiedMatches []map[string]interface{}
 	for _, match := range matches {
 		simplifiedMatches = append(simplifiedMatches, map[string]interface{}{
-			"id":        match.PhiZoneID,
+			"id":        match.UUID,
 			"timestamp": match.Timestamp,
 			"score":     match.Score,
 		})

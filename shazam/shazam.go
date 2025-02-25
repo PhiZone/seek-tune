@@ -13,7 +13,7 @@ type Match struct {
 	//SongID     uint32
 	SongTitle  string
 	SongArtist string
-	PhiZoneID  string
+	UUID       string
 	Timestamp  uint32
 	Score      float64
 }
@@ -52,8 +52,8 @@ func FindMatches(audioSamples []float64, audioDuration float64, sampleRate int) 
 
 	for address, couples := range m {
 		for _, couple := range couples {
-			matches[couple.PhiZoneID] = append(matches[couple.PhiZoneID], [2]uint32{fingerprints[address].AnchorTimeMs, couple.AnchorTimeMs})
-			timestamps[couple.PhiZoneID] = append(timestamps[couple.PhiZoneID], couple.AnchorTimeMs)
+			matches[couple.UUID] = append(matches[couple.UUID], [2]uint32{fingerprints[address].AnchorTimeMs, couple.AnchorTimeMs})
+			timestamps[couple.UUID] = append(timestamps[couple.UUID], couple.AnchorTimeMs)
 		}
 	}
 
@@ -120,8 +120,8 @@ func FindCopyrightMatches(audioSamples []float64, audioDuration float64, sampleR
 
 	for address, couples := range m {
 		for _, couple := range couples {
-			matches[couple.PhiZoneID] = append(matches[couple.PhiZoneID], [2]uint32{fingerprints[address].AnchorTimeMs, couple.AnchorTimeMs})
-			timestamps[couple.PhiZoneID] = append(timestamps[couple.PhiZoneID], couple.AnchorTimeMs)
+			matches[couple.UUID] = append(matches[couple.UUID], [2]uint32{fingerprints[address].AnchorTimeMs, couple.AnchorTimeMs})
+			timestamps[couple.UUID] = append(timestamps[couple.UUID], couple.AnchorTimeMs)
 		}
 	}
 

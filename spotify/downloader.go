@@ -13,7 +13,7 @@ const DELETE_SONG_FILE = true
 
 var yellow = color.New(color.FgYellow)
 
-func ProcessAndSaveSong(songFilePath, songTitle, songArtist, pzID string) error {
+func ProcessAndSaveSong(songFilePath, songTitle, songArtist, uuid string) error {
 	dbclient, err := db.NewDBClient()
 	if err != nil {
 		return err
@@ -40,7 +40,7 @@ func ProcessAndSaveSong(songFilePath, songTitle, songArtist, pzID string) error 
 		return fmt.Errorf("error creating spectrogram: %v", err)
 	}
 
-	songId, err := dbclient.RegisterSong(songTitle, songArtist, pzID)
+	songId, err := dbclient.RegisterSong(songTitle, songArtist, uuid)
 	if err != nil {
 		return err
 	}
@@ -58,7 +58,7 @@ func ProcessAndSaveSong(songFilePath, songTitle, songArtist, pzID string) error 
 	return nil
 }
 
-func ProcessAndUpdateSong(songFilePath, songTitle, songArtist, pzID string) error {
+func ProcessAndUpdateSong(songFilePath, songTitle, songArtist, uuid string) error {
 	dbclient, err := db.NewDBClient()
 	if err != nil {
 		return err
@@ -85,12 +85,12 @@ func ProcessAndUpdateSong(songFilePath, songTitle, songArtist, pzID string) erro
 		return fmt.Errorf("error creating spectrogram: %v", err)
 	}
 
-	err = dbclient.DeleteSongByPhiZoneID(pzID)
+	err = dbclient.DeleteSongByUUID(uuid)
 	if err != nil {
-		return fmt.Errorf("error deleting song by PhiZoneID: %v", err)
+		return fmt.Errorf("error deleting song by UUID: %v", err)
 	}
 
-	songId, err := dbclient.RegisterSong(songTitle, songArtist, pzID)
+	songId, err := dbclient.RegisterSong(songTitle, songArtist, uuid)
 	if err != nil {
 		return err
 	}
@@ -108,7 +108,7 @@ func ProcessAndUpdateSong(songFilePath, songTitle, songArtist, pzID string) erro
 	return nil
 }
 
-func ProcessAndSaveCopyrightSong(songFilePath, songTitle, songArtist, pzID string) error {
+func ProcessAndSaveCopyrightSong(songFilePath, songTitle, songArtist, uuid string) error {
 	dbclient, err := db.NewDBClient()
 	if err != nil {
 		return err
@@ -135,17 +135,17 @@ func ProcessAndSaveCopyrightSong(songFilePath, songTitle, songArtist, pzID strin
 		return fmt.Errorf("error creating spectrogram: %v", err)
 	}
 
-	PhiZoneID, err := dbclient.RegisterCopyrightSong(songTitle, songArtist, pzID)
+	songId, err := dbclient.RegisterCopyrightSong(songTitle, songArtist, uuid)
 	if err != nil {
 		return err
 	}
 
 	peaks := shazam.ExtractPeaks(spectro, wavInfo.Duration)
-	fingerprints := shazam.Fingerprint(peaks, PhiZoneID)
+	fingerprints := shazam.Fingerprint(peaks, songId)
 
 	err = dbclient.StoreFingerprints(fingerprints)
 	if err != nil {
-		dbclient.DeleteCopyrightSongByID(PhiZoneID)
+		dbclient.DeleteCopyrightSongByID(songId)
 		return fmt.Errorf("error to storing fingerpring: %v", err)
 	}
 
@@ -153,7 +153,7 @@ func ProcessAndSaveCopyrightSong(songFilePath, songTitle, songArtist, pzID strin
 	return nil
 }
 
-func ProcessAndUpdateCopyrightSong(songFilePath, songTitle, songArtist, pzID string) error {
+func ProcessAndUpdateCopyrightSong(songFilePath, songTitle, songArtist, uuid string) error {
 	dbclient, err := db.NewDBClient()
 	if err != nil {
 		return err
@@ -180,12 +180,12 @@ func ProcessAndUpdateCopyrightSong(songFilePath, songTitle, songArtist, pzID str
 		return fmt.Errorf("error creating spectrogram: %v", err)
 	}
 
-	err = dbclient.DeleteCopyrightSongByPhiZoneID(pzID)
+	err = dbclient.DeleteCopyrightSongByUUID(uuid)
 	if err != nil {
-		return fmt.Errorf("error deleting song by PhiZoneID: %v", err)
+		return fmt.Errorf("error deleting song by UUID: %v", err)
 	}
 
-	songId, err := dbclient.RegisterCopyrightSong(songTitle, songArtist, pzID)
+	songId, err := dbclient.RegisterCopyrightSong(songTitle, songArtist, uuid)
 	if err != nil {
 		return err
 	}

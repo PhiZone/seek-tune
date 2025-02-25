@@ -27,9 +27,9 @@ func (db *MongoClient) TotalCopyrightSongs() (int, error) {
 	return int(total), nil
 }
 
-func (db *MongoClient) CopyrightSongExistsByID(phiZoneID string) (bool, error) {
+func (db *MongoClient) CopyrightSongExistsByID(uuid string) (bool, error) {
 	collection := db.client.Database("seektune").Collection("copyright_songs")
-	filter := bson.D{{Key: "PhiZoneID", Value: phiZoneID}}
+	filter := bson.D{{Key: "uuid", Value: uuid}}
 
 	err := collection.FindOne(context.Background(), filter).Err()
 	if err != nil {
@@ -59,11 +59,11 @@ func (db *MongoClient) GetCopyrightSong(filterKey string, value interface{}) (So
 		return Song{}, false, fmt.Errorf("failed to retrieve song: %v", err)
 	}
 
-	PhiZoneID := song["PhiZoneID"].(string)
+	uuid := song["uuid"].(string)
 	title := strings.Split(song["key"].(string), "---")[0]
 	artist := strings.Split(song["key"].(string), "---")[1]
 
-	songInstance := Song{title, artist, PhiZoneID}
+	songInstance := Song{title, artist, uuid}
 
 	return songInstance, true, nil
 }
@@ -76,8 +76,8 @@ func (db *MongoClient) GetCopyrightSongByKey(key string) (Song, bool, error) {
 	return db.GetCopyrightSong("key", key)
 }
 
-func (db *MongoClient) GetCopyrightSongByPhiZoneID(PhiZoneID string) (Song, bool, error) {
-	return db.GetCopyrightSong("PhiZoneID", PhiZoneID)
+func (db *MongoClient) GetCopyrightSongByUUID(uuid string) (Song, bool, error) {
+	return db.GetCopyrightSong("uuid", uuid)
 }
 
 func (db *MongoClient) DeleteCopyrightSongByID(songID string) error {
@@ -93,10 +93,10 @@ func (db *MongoClient) DeleteCopyrightSongByID(songID string) error {
 	return nil
 }
 
-func (db *MongoClient) DeleteCopyrightSongByPhiZoneID(PhiZoneID string) error {
+func (db *MongoClient) DeleteCopyrightSongByUUID(uuid string) error {
 	collection := db.client.Database("seektune").Collection("copyright_songs")
 
-	filter := bson.M{"PhiZoneID": PhiZoneID}
+	filter := bson.M{"uuid": uuid}
 
 	_, err := collection.DeleteOne(context.Background(), filter)
 	if err != nil {
@@ -114,12 +114,12 @@ func (db *MongoClient) DeleteCopyrightCollection(collectionName string) error {
 	return nil
 }
 
-func (db *MongoClient) RegisterCopyrightSong(songTitle, songArtist, songID string) (string, error) {
+func (db *MongoClient) RegisterCopyrightSong(songTitle, songArtist, uuid string) (string, error) {
 	collection := db.client.Database("seektune").Collection("copyright_songs")
 
 	// Create a compound unique index on songID and key, if it doesn't already exist
 	indexModel := mongo.IndexModel{
-		Keys:    bson.D{{Key: "songID", Value: 1}, {Key: "key", Value: 1}},
+		Keys:    bson.D{{Key: "uuid", Value: 1}, {Key: "key", Value: 1}},
 		Options: options.Index().SetUnique(true),
 	}
 	_, err := collection.Indexes().CreateOne(context.Background(), indexModel)
@@ -130,10 +130,10 @@ func (db *MongoClient) RegisterCopyrightSong(songTitle, songArtist, songID strin
 	// Attempt to insert the song with songID and key
 	id := utils.GenerateUniqueID()
 	key := utils.GenerateSongKey(songTitle, songArtist)
-	_, err = collection.InsertOne(context.Background(), bson.M{"_id": id, "key": key, "songID": songID})
+	_, err = collection.InsertOne(context.Background(), bson.M{"_id": id, "key": key, "uuid": uuid})
 	if err != nil {
 		if mongo.IsDuplicateKeyError(err) {
-			return "", fmt.Errorf("song with songID or key already exists: %v", err)
+			return "", fmt.Errorf("song with UUID or key already exists: %v", err)
 		} else {
 			return "", fmt.Errorf("failed to register song: %v", err)
 		}
@@ -167,7 +167,7 @@ func (db *MongoClient) StoreFingerprints(fingerprints map[uint32]models.Couple) 
 			"$push": bson.M{
 				"couples": bson.M{
 					"anchorTimeMs": couple.AnchorTimeMs,
-					"id":           couple.PhiZoneID,
+					"id":           couple.UUID,
 				},
 			},
 		}
@@ -213,7 +213,7 @@ func (db *MongoClient) GetCouples(addresses []uint32) (map[uint32][]models.Coupl
 
 			couple := models.Couple{
 				AnchorTimeMs: uint32(itemMap["anchorTimeMs"].(int64)),
-				PhiZoneID:    itemMap["id"].(string),
+				UUID:         itemMap["id"].(string),
 			}
 			docCouples = append(docCouples, couple)
 		}
@@ -233,9 +233,9 @@ func (db *MongoClient) TotalSongs() (int, error) {
 	return int(total), nil
 }
 
-func (db *MongoClient) SongExistsByID(phiZoneID string) (bool, error) {
+func (db *MongoClient) SongExistsByID(uuid string) (bool, error) {
 	existingCollection := db.client.Database("seektune").Collection("songs")
-	filter := bson.D{{Key: "PhiZoneID", Value: phiZoneID}}
+	filter := bson.D{{Key: "uuid", Value: uuid}}
 
 	err := existingCollection.FindOne(context.Background(), filter).Err()
 	if err != nil {
@@ -250,7 +250,7 @@ func (db *MongoClient) SongExistsByID(phiZoneID string) (bool, error) {
 func (db *MongoClient) FindNonExistentSongs(requestedIDs []string) ([]string, error) {
 	existingCollection := db.client.Database("seektune").Collection("songs")
 
-	filter := bson.M{"PhiZoneID": bson.M{"$in": requestedIDs}}
+	filter := bson.M{"uuid": bson.M{"$in": requestedIDs}}
 	cursor, err := existingCollection.Find(context.Background(), filter)
 	if err != nil {
 		return nil, err
@@ -260,12 +260,12 @@ func (db *MongoClient) FindNonExistentSongs(requestedIDs []string) ([]string, er
 	foundIDs := make(map[string]bool)
 	for cursor.Next(context.Background()) {
 		var result struct {
-			PhiZoneID string `bson:"PhiZoneID"`
+			UUID string `bson:"uuid"`
 		}
 		if err := cursor.Decode(&result); err != nil {
 			return nil, err
 		}
-		foundIDs[result.PhiZoneID] = true
+		foundIDs[result.UUID] = true
 	}
 
 	var nonExistentIDs []string
@@ -278,12 +278,12 @@ func (db *MongoClient) FindNonExistentSongs(requestedIDs []string) ([]string, er
 	return nonExistentIDs, nil
 }
 
-func (db *MongoClient) RegisterSong(songTitle, songArtist, PhiZoneID string) (string, error) {
+func (db *MongoClient) RegisterSong(songTitle, songArtist, uuid string) (string, error) {
 	existingSongsCollection := db.client.Database("seektune").Collection("songs")
 
-	// Create a compound unique index on PhiZoneID and key, if it doesn't already exist
+	// Create a compound unique index on UUID and key, if it doesn't already exist
 	indexModel := mongo.IndexModel{
-		Keys:    bson.D{{Key: "PhiZoneID", Value: 1}, {Key: "key", Value: 1}},
+		Keys:    bson.D{{Key: "uuid", Value: 1}, {Key: "key", Value: 1}},
 		Options: options.Index().SetUnique(true),
 	}
 	_, err := existingSongsCollection.Indexes().CreateOne(context.Background(), indexModel)
@@ -291,13 +291,13 @@ func (db *MongoClient) RegisterSong(songTitle, songArtist, PhiZoneID string) (st
 		return "", fmt.Errorf("failed to create unique index: %v", err)
 	}
 
-	// Attempt to insert the song with PhiZoneID and key
+	// Attempt to insert the song with UUID and key
 	id := utils.GenerateUniqueID()
 	key := utils.GenerateSongKey(songTitle, songArtist)
-	_, err = existingSongsCollection.InsertOne(context.Background(), bson.M{"_id": id, "key": key, "PhiZoneID": PhiZoneID})
+	_, err = existingSongsCollection.InsertOne(context.Background(), bson.M{"_id": id, "key": key, "uuid": uuid})
 	if err != nil {
 		if mongo.IsDuplicateKeyError(err) {
-			return "", fmt.Errorf("song with PhiZoneID or key already exists: %v", err)
+			return "", fmt.Errorf("song with UUID or key already exists: %v", err)
 		} else {
 			return "", fmt.Errorf("failed to register song: %v", err)
 		}
@@ -306,7 +306,7 @@ func (db *MongoClient) RegisterSong(songTitle, songArtist, PhiZoneID string) (st
 	return id, nil
 }
 
-var mongoFilterKeys = "_id | PhiZoneID | key"
+var mongoFilterKeys = "_id | uuid | key"
 
 func (db *MongoClient) GetSong(filterKey string, value interface{}) (s Song, songExists bool, e error) {
 	if !strings.Contains(mongoFilterKeys, filterKey) {
@@ -326,11 +326,11 @@ func (db *MongoClient) GetSong(filterKey string, value interface{}) (s Song, son
 		return Song{}, false, fmt.Errorf("failed to retrieve song: %v", err)
 	}
 
-	PhiZoneID := song["PhiZoneID"].(string)
+	uuid := song["uuid"].(string)
 	title := strings.Split(song["key"].(string), "---")[0]
 	artist := strings.Split(song["key"].(string), "---")[1]
 
-	songInstance := Song{title, artist, PhiZoneID}
+	songInstance := Song{title, artist, uuid}
 
 	return songInstance, true, nil
 }
@@ -339,12 +339,12 @@ func (db *MongoClient) GetSongByID(id string) (Song, bool, error) {
 	return db.GetSong("_id", id)
 }
 
-func (db *MongoClient) GetSongByPhiZoneID(PhiZoneID string) (Song, bool, error) {
-	return db.GetSong("PhiZoneID", PhiZoneID)
+func (db *MongoClient) GetSongByUUID(uuid string) (Song, bool, error) {
+	return db.GetSong("uuid", uuid)
 }
 
-func (db *MongoClient) GetSongByYTID(PhiZoneID string) (Song, bool, error) {
-	return db.GetSong("PhiZoneID", PhiZoneID)
+func (db *MongoClient) GetSongByYTID(uuid string) (Song, bool, error) {
+	return db.GetSong("uuid", uuid)
 }
 
 func (db *MongoClient) GetSongByKey(key string) (Song, bool, error) {
@@ -373,10 +373,10 @@ func (db *MongoClient) DeleteCollection(collectionName string) error {
 	return nil
 }
 
-func (db *MongoClient) DeleteSongByPhiZoneID(PhiZoneID string) error {
+func (db *MongoClient) DeleteSongByUUID(uuid string) error {
 	songsCollection := db.client.Database("seektune").Collection("songs")
 
-	filter := bson.M{"PhiZoneID": PhiZoneID}
+	filter := bson.M{"uuid": uuid}
 
 	_, err := songsCollection.DeleteOne(context.Background(), filter)
 	if err != nil {

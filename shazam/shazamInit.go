@@ -12,7 +12,7 @@ type Match1 struct {
 	SongID     string
 	SongTitle  string
 	SongArtist string
-	PhiZoneID  string
+	UUID       string
 	Timestamp  uint32
 	Coherency  float64
 }
@@ -71,10 +71,10 @@ func targetZones(m map[uint32][]models.Couple) map[string][]uint32 {
 
 	for _, couples := range m {
 		for _, couple := range couples {
-			if _, ok := songs[couple.PhiZoneID]; !ok {
-				songs[couple.PhiZoneID] = make(map[uint32]int)
+			if _, ok := songs[couple.UUID]; !ok {
+				songs[couple.UUID] = make(map[uint32]int)
 			}
-			songs[couple.PhiZoneID][couple.AnchorTimeMs]++
+			songs[couple.UUID][couple.AnchorTimeMs]++
 		}
 	}
 	fmt.Println("couples: ", songs)
