@@ -6,6 +6,7 @@ require (
 	github.com/buger/jsonparser v1.1.1
 	github.com/fatih/color v1.16.0
 	github.com/googollee/go-socket.io v1.7.0
+	github.com/joho/godotenv v1.5.1
 	github.com/kkdai/youtube/v2 v2.10.1
 	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/mdobak/go-xerrors v0.3.1
@@ -38,7 +39,6 @@ require (
 	github.com/googleapis/enterprise-certificate-proxy v0.3.2 // indirect
 	github.com/googleapis/gax-go/v2 v2.12.1 // indirect
 	github.com/gorilla/websocket v1.4.2 // indirect
-	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/klauspost/compress v1.17.6 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
