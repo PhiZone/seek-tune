@@ -384,8 +384,8 @@ func handleHttpUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	statusMsg := fmt.Sprintf("'%s' was update", uuid) // 歌曲已保存
-	w.WriteHeader(http.StatusOK)                      // 状态码: 200
+	statusMsg := fmt.Sprintf("'%s' has been updated", uuid) // 歌曲已保存
+	w.WriteHeader(http.StatusOK)                            // 状态码: 200
 	wr, err := w.Write([]byte(statusMsg))
 	if err != nil {
 		logger.ErrorContext(ctx, "Failed to write response", slog.Any("error", err))
@@ -787,8 +787,8 @@ func handleHttpCopyrightUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	statusMsg := fmt.Sprintf("'%s' was update", uuid) // 歌曲已保存
-	w.WriteHeader(http.StatusOK)                      // 状态码: 200
+	statusMsg := fmt.Sprintf("'%s' has been updated", uuid) // 歌曲已保存
+	w.WriteHeader(http.StatusOK)                            // 状态码: 200
 	wr, err := w.Write([]byte(statusMsg))
 	if err != nil {
 		logger.ErrorContext(ctx, "Failed to write response", slog.Any("error", err))
