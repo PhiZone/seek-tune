@@ -262,6 +262,10 @@ func handleHttpFind(w http.ResponseWriter, r *http.Request) {
 		if err := os.Remove(songPath); err != nil {
 			logger.ErrorContext(ctx, "Failed to delete file", slog.Any("error", err))
 		}
+		// 删除wav文件
+		if err := os.Remove(wavFilePath); err != nil {
+			logger.ErrorContext(ctx, "Failed to delete wav file", slog.Any("error", err))
+		}
 	}
 }
 
@@ -663,6 +667,10 @@ func handleHttpCopyrightFind(w http.ResponseWriter, r *http.Request) {
 	if songURL != "" {
 		if err := os.Remove(songPath); err != nil {
 			logger.ErrorContext(ctx, "Failed to delete file", slog.Any("error", err))
+		}
+		// 删除wav文件
+		if err := os.Remove(wavFilePath); err != nil {
+			logger.ErrorContext(ctx, "Failed to delete wav file", slog.Any("error", err))
 		}
 	}
 }
