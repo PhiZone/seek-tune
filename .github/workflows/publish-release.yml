@@ -1,0 +1,52 @@
+name: Publish Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # Run this only when a new version tag is pushed
+
+jobs:
+  build:
+    name: Build binaries
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux, windows, darwin]
+        goarch: [amd64, arm64]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          mkdir -p dist/
+          go build -tags netgo -ldflags '-s -w' -o dist/seektune-${GOOS}-${GOARCH}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: seektune-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/seektune-${{ matrix.goos }}-${{ matrix.goarch }}
+
+  release:
+    name: Create GitHub release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            seektune-*/seektune-*
